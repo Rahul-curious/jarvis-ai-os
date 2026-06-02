@@ -1,0 +1,17 @@
+collections:
+  - name: user_memory
+    scope: user
+    phase: 2
+    purpose: Consent-based long-term memory embeddings.
+  - name: workspace_memory
+    scope: workspace
+    phase: 2
+    purpose: Shared workspace memory embeddings.
+  - name: knowledge_chunks
+    scope: workspace
+    phase: 2
+    purpose: Retrieval chunks for documents, transcripts, and knowledge sources.
+  - name: agent_run_context
+    scope: workspace
+    phase: 3
+    purpose: Agent execution context for future replay and evaluation.

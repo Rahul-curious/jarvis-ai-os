@@ -1,0 +1,99 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jarvis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-jarvis}
+      POSTGRES_USER: ${POSTGRES_USER:-jarvis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jarvis_dev_password}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-jarvis} -d ${POSTGRES_DB:-jarvis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jarvis
+
+  chromadb:
+    image: chromadb/chroma:0.5.23
+    container_name: jarvis-chromadb
+    restart: unless-stopped
+    ports:
+      - "${CHROMA_PORT:-8001}:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      IS_PERSISTENT: "TRUE"
+      ANONYMIZED_TELEMETRY: "FALSE"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/heartbeat')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jarvis
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: jarvis-backend
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_NAME: ${APP_NAME:-JARVIS AI OS}
+      API_V1_PREFIX: ${API_V1_PREFIX:-/api/v1}
+      BACKEND_CORS_ORIGINS: ${BACKEND_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://jarvis:jarvis_dev_password@postgres:5432/jarvis}
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
+      CHROMA_COLLECTION_PREFIX: ${CHROMA_COLLECTION_PREFIX:-jarvis}
+      AGENT_DEFAULT_RECURSION_LIMIT: ${AGENT_DEFAULT_RECURSION_LIMIT:-25}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./backend/app:/app/app
+    networks:
+      - jarvis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: jarvis-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:8000}
+    ports:
+      - "${FRONTEND_PORT:-5173}:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+    networks:
+      - jarvis
+
+networks:
+  jarvis:
+    driver: bridge
+
+volumes:
+  postgres-data:
+  chroma-data:
