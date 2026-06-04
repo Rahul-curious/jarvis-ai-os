@@ -20,14 +20,19 @@ body {
 .app-shell {
   display: grid;
   gap: 32px;
-  width: min(960px, calc(100% - 32px));
+  width: min(920px, calc(100% - 32px));
   margin: 0 auto;
   padding: 72px 0 40px;
 }
 
-.hero {
+.auth-card,
+.dashboard {
   display: grid;
-  gap: 16px;
+  gap: 22px;
+  border: 1px solid #22324a;
+  border-radius: 8px;
+  padding: 28px;
+  background: #0d1a2c;
 }
 
 .eyebrow {
@@ -39,14 +44,13 @@ body {
 }
 
 h1,
-h2,
 p {
   margin: 0;
 }
 
 h1 {
-  font-size: clamp(2.5rem, 7vw, 5rem);
-  line-height: 1;
+  font-size: clamp(2rem, 6vw, 3.8rem);
+  line-height: 1.05;
 }
 
 .lede {
@@ -56,26 +60,112 @@ h1 {
   line-height: 1.7;
 }
 
-.foundation-panel {
-  border: 1px solid #22324a;
-  border-radius: 8px;
-  padding: 24px;
-  background: #0d1a2c;
-}
-
-.foundation-panel ul {
+form {
   display: grid;
-  gap: 10px;
-  margin: 18px 0 0;
-  padding: 0;
-  list-style: none;
+  gap: 18px;
 }
 
-.foundation-panel li {
-  padding: 12px 14px;
-  border-radius: 6px;
-  background: #12223a;
+label {
+  display: grid;
+  gap: 8px;
   color: #d8e4f5;
+  font-weight: 700;
+}
+
+input {
+  width: 100%;
+  border: 1px solid #2c405f;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: #12223a;
+  color: #e8eef8;
+  font: inherit;
+}
+
+input:focus {
+  border-color: #72d6ff;
+  outline: 2px solid rgb(114 214 255 / 20%);
+}
+
+button {
+  width: fit-content;
+  border: 0;
+  border-radius: 6px;
+  padding: 12px 16px;
+  background: #72d6ff;
+  color: #08111f;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.text-button {
+  display: inline;
+  width: auto;
+  padding: 0;
+  background: transparent;
+  color: #72d6ff;
+}
+
+.secondary-button {
+  border: 1px solid #2c405f;
+  background: #12223a;
+  color: #e8eef8;
+}
+
+.auth-switch,
+.status-message {
+  color: #afbdd0;
+}
+
+.form-error {
+  border: 1px solid #8e3348;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: #331421;
+  color: #ffd5dd;
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.profile-grid div {
+  border: 1px solid #22324a;
+  border-radius: 6px;
+  padding: 14px;
+  background: #12223a;
+}
+
+dt {
+  color: #94a7c0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+dd {
+  margin: 8px 0 0;
+  color: #e8eef8;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    padding-top: 28px;
+  }
+
+  .auth-card,
+  .dashboard {
+    padding: 20px;
+  }
 }
 
 footer {

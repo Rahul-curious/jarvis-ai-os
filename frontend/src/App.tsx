@@ -1,39 +1,41 @@
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+import { useCallback, useState } from 'react';
 
-const foundations = [
-  'FastAPI control plane',
-  'React + Vite TypeScript client',
-  'PostgreSQL relational store',
-  'ChromaDB vector store',
-  'LangGraph agent scaffolding',
-  'Docker Compose local stack',
-];
+import { UserProfile } from './api/client';
+import { DashboardPage } from './pages/DashboardPage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { useRoute } from './state/router';
 
 export default function App() {
+  const { path, navigate } = useRoute();
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  const handleAuthenticated = useCallback((user: UserProfile) => {
+    setCurrentUser(user);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    setCurrentUser(null);
+  }, []);
+
   return (
     <main className="app-shell">
-      <section className="hero">
-        <p className="eyebrow">Phase 1 Foundation</p>
-        <h1>JARVIS AI OS</h1>
-        <p className="lede">
-          Enterprise-grade scaffolding for the hybrid assistant, memory, knowledge, and
-          orchestration platform.
-        </p>
-      </section>
+      {path === '/login' ? (
+        <LoginPage navigate={navigate} onAuthenticated={handleAuthenticated} />
+      ) : null}
 
-      <section className="foundation-panel" aria-label="Configured foundation">
-        <h2>Configured Foundation</h2>
-        <ul>
-          {foundations.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      </section>
+      {path === '/register' ? (
+        <RegisterPage navigate={navigate} onAuthenticated={handleAuthenticated} />
+      ) : null}
 
-      <footer>
-        <span>Backend API</span>
-        <code>{apiBaseUrl}</code>
-      </footer>
+      {path === '/dashboard' ? (
+        <DashboardPage
+          currentUser={currentUser}
+          navigate={navigate}
+          onLogout={handleLogout}
+          onUserLoaded={handleAuthenticated}
+        />
+      ) : null}
     </main>
   );
 }
