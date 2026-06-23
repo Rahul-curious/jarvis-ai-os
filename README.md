@@ -2,20 +2,21 @@
 
 JARVIS is an AI Operating System inspired by Tony Stark's JARVIS.
 
-This repository currently contains the Phase 3 authentication and control-plane foundation:
+This repository currently contains the Phase 4 Memory Engine foundation:
 
 - FastAPI backend control-plane scaffold.
 - JWT authentication with HttpOnly cookie sessions.
 - PostgreSQL-backed `users`, `sessions`, and `audit_logs` tables.
+- PostgreSQL-backed `memory_items`, `memory_events`, and `memory_references` tables.
 - React + Vite + TypeScript frontend scaffold.
-- Login, register, and dashboard pages.
+- Login, register, dashboard, and memory dashboard pages.
 - PostgreSQL service for relational persistence.
 - Alembic migrations that run on backend container startup.
 - Optional ChromaDB service for future memory and RAG vectors.
 - LangGraph package scaffold for future agent orchestration.
 - Docker Compose local development stack.
 
-Business logic for assistant chat, long-term memory, RAG, agents, automation, and governance is intentionally not implemented yet.
+Business logic for assistant chat, RAG, agents, automation, voice, and advanced governance is intentionally not implemented yet.
 
 ## Local Setup
 
@@ -52,6 +53,18 @@ docker compose --profile memory up --build
 - `GET /api/v1/users/me`
 
 Access and refresh JWTs are stored in HttpOnly cookies. The frontend never stores tokens in JavaScript.
+
+## Memory Endpoints
+
+- `POST /api/v1/memory`
+- `GET /api/v1/memory`
+- `GET /api/v1/memory/{id}`
+- `PUT /api/v1/memory/{id}`
+- `DELETE /api/v1/memory/{id}`
+- `POST /api/v1/memory/search`
+- `POST /api/v1/memory/reinforce`
+
+Phase 4 memory search is keyword, category, and type based. Embeddings, vector search, RAG, and agent-created memories remain deferred.
 
 ## Development Checks
 

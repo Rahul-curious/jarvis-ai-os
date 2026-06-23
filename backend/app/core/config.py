@@ -46,6 +46,10 @@ class Settings(BaseSettings):
     )
     password_min_length: int = Field(default=12, alias="PASSWORD_MIN_LENGTH")
     password_max_length: int = Field(default=128, alias="PASSWORD_MAX_LENGTH")
+    short_term_memory_default_ttl_hours: int = Field(
+        default=24,
+        alias="SHORT_TERM_MEMORY_DEFAULT_TTL_HOURS",
+    )
 
     @field_validator("jwt_secret_key")
     @classmethod

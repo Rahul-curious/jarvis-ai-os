@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react';
 import { UserProfile } from './api/client';
 import { DashboardPage } from './pages/DashboardPage';
 import { LoginPage } from './pages/LoginPage';
+import { MemoryPage } from './pages/MemoryPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { useRoute } from './state/router';
 
@@ -30,6 +31,15 @@ export default function App() {
 
       {path === '/dashboard' ? (
         <DashboardPage
+          currentUser={currentUser}
+          navigate={navigate}
+          onLogout={handleLogout}
+          onUserLoaded={handleAuthenticated}
+        />
+      ) : null}
+
+      {path === '/memory' ? (
+        <MemoryPage
           currentUser={currentUser}
           navigate={navigate}
           onLogout={handleLogout}

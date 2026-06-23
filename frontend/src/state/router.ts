@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 
-export type RoutePath = '/login' | '/register' | '/dashboard';
+export type RoutePath = '/login' | '/register' | '/dashboard' | '/memory';
 
-const knownRoutes = new Set<RoutePath>(['/login', '/register', '/dashboard']);
+const knownRoutes = new Set<RoutePath>(['/login', '/register', '/dashboard', '/memory']);
 
 export function useRoute() {
   const [path, setPath] = useState<RoutePath>(getCurrentRoute());

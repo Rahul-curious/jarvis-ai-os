@@ -20,13 +20,15 @@ body {
 .app-shell {
   display: grid;
   gap: 32px;
-  width: min(920px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
   padding: 72px 0 40px;
 }
 
 .auth-card,
-.dashboard {
+.dashboard,
+.memory-dashboard,
+.memory-panel {
   display: grid;
   gap: 22px;
   border: 1px solid #22324a;
@@ -82,7 +84,25 @@ input {
   font: inherit;
 }
 
-input:focus {
+textarea,
+select {
+  width: 100%;
+  border: 1px solid #2c405f;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: #12223a;
+  color: #e8eef8;
+  font: inherit;
+}
+
+textarea {
+  min-height: 136px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
   border-color: #72d6ff;
   outline: 2px solid rgb(114 214 255 / 20%);
 }
@@ -118,6 +138,12 @@ button:disabled {
   color: #e8eef8;
 }
 
+.danger-button {
+  border: 1px solid #8e3348;
+  background: #331421;
+  color: #ffd5dd;
+}
+
 .auth-switch,
 .status-message {
   color: #afbdd0;
@@ -138,7 +164,8 @@ button:disabled {
   margin: 0;
 }
 
-.profile-grid div {
+.profile-grid div,
+.memory-metrics div {
   border: 1px solid #22324a;
   border-radius: 6px;
   padding: 14px;
@@ -157,14 +184,155 @@ dd {
   overflow-wrap: anywhere;
 }
 
+.dashboard-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.memory-dashboard {
+  align-content: start;
+}
+
+.memory-header,
+.panel-heading {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.panel-heading h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.panel-heading span {
+  color: #94a7c0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.memory-filters,
+.memory-form {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+.memory-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.checkbox-label {
+  display: flex;
+  min-height: 46px;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+
+.checkbox-label input {
+  width: auto;
+}
+
+.memory-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.memory-list {
+  display: grid;
+  gap: 10px;
+}
+
+.memory-row {
+  display: grid;
+  width: 100%;
+  gap: 8px;
+  border: 1px solid #22324a;
+  background: #12223a;
+  color: #e8eef8;
+  text-align: left;
+}
+
+.memory-row.is-selected {
+  border-color: #72d6ff;
+  background: #16304e;
+}
+
+.memory-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #94a7c0;
+  font-size: 0.88rem;
+}
+
+.memory-row-meta strong {
+  color: #72d6ff;
+}
+
+.memory-score {
+  color: #afbdd0;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.memory-detail {
+  display: grid;
+  gap: 18px;
+}
+
+.memory-detail > p {
+  color: #e8eef8;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.memory-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.memory-content-field {
+  grid-column: 1 / -1;
+}
+
+.empty-state {
+  color: #94a7c0;
+  line-height: 1.6;
+}
+
 @media (max-width: 640px) {
   .app-shell {
     padding-top: 28px;
   }
 
   .auth-card,
-  .dashboard {
+  .dashboard,
+  .memory-dashboard,
+  .memory-panel {
     padding: 20px;
+  }
+
+  .memory-header,
+  .panel-heading {
+    display: grid;
+  }
+}
+
+@media (max-width: 900px) {
+  .memory-layout,
+  .memory-filters,
+  .memory-form {
+    grid-template-columns: 1fr;
   }
 }
 
