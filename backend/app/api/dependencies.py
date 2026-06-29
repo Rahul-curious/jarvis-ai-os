@@ -5,6 +5,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
+from app.domains.documents.embeddings import (
+    EmbeddingProvider,
+    HashEmbeddingProvider,
+    SentenceTransformerEmbeddingProvider,
+)
+from app.domains.documents.vector_store import ChromaVectorStore
 from app.domains.identity.models import User
 from app.domains.identity.service import AuthService, InvalidCredentialsError
 
@@ -32,3 +38,20 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Authentication required",
         ) from exc
+
+
+def get_embedding_provider(settings: Settings = SETTINGS_DEP) -> EmbeddingProvider:
+    if settings.embedding_provider == "hash":
+        return HashEmbeddingProvider(dimensions=settings.embedding_dimensions)
+    return SentenceTransformerEmbeddingProvider(
+        model_name=settings.embedding_model_name,
+        dimensions=settings.embedding_dimensions,
+    )
+
+
+def get_vector_store(settings: Settings = SETTINGS_DEP) -> ChromaVectorStore:
+    return ChromaVectorStore.from_http(
+        host=settings.chroma_host,
+        port=settings.chroma_port,
+        collection_name=settings.chroma_document_collection_name,
+    )

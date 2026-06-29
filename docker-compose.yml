@@ -22,8 +22,6 @@ services:
   chromadb:
     image: chromadb/chroma:0.5.23
     container_name: jarvis-chromadb
-    profiles:
-      - memory
     restart: unless-stopped
     ports:
       - "${CHROMA_PORT:-8001}:8000"
@@ -68,11 +66,20 @@ services:
       CHROMA_HOST: chromadb
       CHROMA_PORT: 8000
       CHROMA_COLLECTION_PREFIX: ${CHROMA_COLLECTION_PREFIX:-jarvis}
+      CHROMA_DOCUMENTS_COLLECTION: ${CHROMA_DOCUMENTS_COLLECTION:-documents}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-sentence-transformers}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-sentence-transformers/all-MiniLM-L6-v2}
+      EMBEDDING_DIMENSIONS: ${EMBEDDING_DIMENSIONS:-384}
+      DOCUMENT_MAX_UPLOAD_BYTES: ${DOCUMENT_MAX_UPLOAD_BYTES:-10485760}
+      DOCUMENT_CHUNK_SIZE: ${DOCUMENT_CHUNK_SIZE:-1200}
+      DOCUMENT_CHUNK_OVERLAP: ${DOCUMENT_CHUNK_OVERLAP:-180}
       AGENT_DEFAULT_RECURSION_LIMIT: ${AGENT_DEFAULT_RECURSION_LIMIT:-25}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
       postgres:
+        condition: service_healthy
+      chromadb:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]

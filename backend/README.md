@@ -2,18 +2,21 @@
 
 FastAPI foundation for the JARVIS cloud control plane.
 
-Phase 4 responsibilities:
+Phase 5 responsibilities:
 
 - Provide versioned API routing under `/api/v1`.
 - Connect to PostgreSQL through SQLAlchemy async sessions.
-- Manage Alembic migrations for auth and memory persistence.
+- Manage Alembic migrations for auth, memory, and document persistence.
 - Support open registration, login, refresh, logout, and user profile endpoints.
 - Store JWT access and refresh tokens in HttpOnly cookies.
 - Persist users, sessions, and audit logs.
 - Persist explicit user memories, memory events, and memory references.
 - Support memory create, list, recall, update, delete, search, and reinforcement APIs.
+- Persist document metadata and chunk records in PostgreSQL.
+- Store document chunk vectors in ChromaDB.
+- Support document upload/list/detail/delete and RAG search/query APIs.
 
-Business logic for assistant orchestration, RAG, agents, browser automation, and voice is intentionally deferred.
+Business logic for autonomous agents, browser automation, and voice is intentionally deferred.
 
 ## Environment
 
@@ -24,6 +27,10 @@ Required production-sensitive settings:
 - `BACKEND_CORS_ORIGINS`
 - `AUTH_COOKIE_SECURE`
 - `SHORT_TERM_MEMORY_DEFAULT_TTL_HOURS`
+- `CHROMA_HOST`
+- `CHROMA_PORT`
+- `EMBEDDING_PROVIDER`
+- `EMBEDDING_MODEL_NAME`
 
 Local defaults are documented in the repository `.env.example`.
 
@@ -52,8 +59,14 @@ The backend Docker container runs this command automatically before starting Uvi
 - `DELETE /api/v1/memory/{id}`
 - `POST /api/v1/memory/search`
 - `POST /api/v1/memory/reinforce`
+- `POST /api/v1/documents/upload`
+- `GET /api/v1/documents`
+- `GET /api/v1/documents/{id}`
+- `DELETE /api/v1/documents/{id}`
+- `POST /api/v1/rag/search`
+- `POST /api/v1/rag/query`
 
-Memory is relational in Phase 4. There is no vector search, embedding generation, RAG, or agent-created memory behavior yet.
+Memory is relational. Document RAG uses ChromaDB vectors and PostgreSQL chunk metadata.
 
 ## Tests
 

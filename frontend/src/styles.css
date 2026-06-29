@@ -310,6 +310,52 @@ dd {
   line-height: 1.6;
 }
 
+.chunk-list {
+  display: grid;
+  gap: 12px;
+}
+
+.chunk-card,
+.rag-answer {
+  display: grid;
+  gap: 10px;
+  border: 1px solid #22324a;
+  border-radius: 6px;
+  padding: 14px;
+  background: #12223a;
+}
+
+.chunk-card span {
+  color: #72d6ff;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.chunk-card p,
+.rag-answer p {
+  color: #d8e4f5;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.rag-answer h2,
+.rag-answer h3 {
+  margin: 0;
+}
+
+.knowledge-query-form,
+.upload-form {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 120px auto auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.upload-form {
+  grid-template-columns: minmax(240px, 1fr) auto;
+}
+
 @media (max-width: 640px) {
   .app-shell {
     padding-top: 28px;
@@ -331,7 +377,9 @@ dd {
 @media (max-width: 900px) {
   .memory-layout,
   .memory-filters,
-  .memory-form {
+  .memory-form,
+  .knowledge-query-form,
+  .upload-form {
     grid-template-columns: 1fr;
   }
 }

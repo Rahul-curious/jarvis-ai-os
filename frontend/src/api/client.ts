@@ -97,6 +97,80 @@ export type MemoryReinforcePayload = {
   reason?: string | null;
 };
 
+export type DocumentChunk = {
+  id: string;
+  document_id: string;
+  chunk_index: number;
+  content: string;
+  char_count: number;
+  content_hash: string;
+  vector_id: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+};
+
+export type KnowledgeDocument = {
+  id: string;
+  user_id: string;
+  filename: string;
+  content_type: string;
+  file_size_bytes: number;
+  checksum_sha256: string;
+  status: string;
+  chunk_count: number;
+  text_length: number;
+  embedding_model: string;
+  vector_collection: string;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+  chunks: DocumentChunk[];
+};
+
+export type DocumentListResponse = {
+  items: KnowledgeDocument[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type RagSearchPayload = {
+  query: string;
+  top_k?: number;
+  document_id?: string | null;
+};
+
+export type RagSearchResult = {
+  document_id: string;
+  document_filename: string;
+  chunk_id: string;
+  chunk_index: number;
+  content: string;
+  distance: number | null;
+  citation: string;
+  metadata: Record<string, unknown>;
+};
+
+export type RagSearchResponse = {
+  query: string;
+  results: RagSearchResult[];
+};
+
+export type RagCitation = {
+  document_id: string;
+  document_filename: string;
+  chunk_id: string;
+  chunk_index: number;
+  citation: string;
+};
+
+export type RagQueryResponse = {
+  question: string;
+  answer: string;
+  context: RagSearchResult[];
+  citations: RagCitation[];
+};
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -189,14 +263,54 @@ export async function reinforceMemory(payload: MemoryReinforcePayload): Promise<
   });
 }
 
+export async function uploadDocument(file: File): Promise<KnowledgeDocument> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request<KnowledgeDocument>('/api/v1/documents/upload', {
+    method: 'POST',
+    body: formData,
+  });
+}
+
+export async function listDocuments(limit = 50): Promise<DocumentListResponse> {
+  return request<DocumentListResponse>(`/api/v1/documents?limit=${limit}`);
+}
+
+export async function getDocument(documentId: string): Promise<KnowledgeDocument> {
+  return request<KnowledgeDocument>(`/api/v1/documents/${documentId}`);
+}
+
+export async function deleteDocument(documentId: string): Promise<void> {
+  await request<{ detail: string }>(`/api/v1/documents/${documentId}`, { method: 'DELETE' });
+}
+
+export async function searchKnowledge(payload: RagSearchPayload): Promise<RagSearchResponse> {
+  return request<RagSearchResponse>('/api/v1/rag/search', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function queryKnowledge(payload: RagSearchPayload): Promise<RagQueryResponse> {
+  return request<RagQueryResponse>('/api/v1/rag/query', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const headers =
+    init.body instanceof FormData
+      ? init.headers
+      : {
+          'Content-Type': 'application/json',
+          ...init.headers,
+        };
+
   const response = await fetch(`${apiBaseUrl}${path}`, {
     ...init,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...init.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {

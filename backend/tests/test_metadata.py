@@ -9,4 +9,6 @@ def test_auth_metadata_contains_required_tables() -> None:
         "memory_items",
         "memory_events",
         "memory_references",
+        "documents",
+        "document_chunks",
     }.issubset(Base.metadata.tables.keys())

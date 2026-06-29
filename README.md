@@ -2,21 +2,23 @@
 
 JARVIS is an AI Operating System inspired by Tony Stark's JARVIS.
 
-This repository currently contains the Phase 4 Memory Engine foundation:
+This repository currently contains the Phase 5 RAG Knowledge Engine foundation:
 
 - FastAPI backend control-plane scaffold.
 - JWT authentication with HttpOnly cookie sessions.
 - PostgreSQL-backed `users`, `sessions`, and `audit_logs` tables.
 - PostgreSQL-backed `memory_items`, `memory_events`, and `memory_references` tables.
+- PostgreSQL-backed `documents` and `document_chunks` tables.
+- ChromaDB-backed document chunk vector storage.
 - React + Vite + TypeScript frontend scaffold.
-- Login, register, dashboard, and memory dashboard pages.
+- Login, register, dashboard, memory, knowledge base, and document upload pages.
 - PostgreSQL service for relational persistence.
 - Alembic migrations that run on backend container startup.
-- Optional ChromaDB service for future memory and RAG vectors.
+- ChromaDB service for document embeddings and RAG retrieval.
 - LangGraph package scaffold for future agent orchestration.
 - Docker Compose local development stack.
 
-Business logic for assistant chat, RAG, agents, automation, voice, and advanced governance is intentionally not implemented yet.
+Business logic for autonomous agents, browser automation, voice, and advanced governance is intentionally not implemented yet.
 
 ## Local Setup
 
@@ -38,11 +40,7 @@ Business logic for assistant chat, RAG, agents, automation, voice, and advanced 
    - Backend health: `http://localhost:8000/api/v1/health`
    - Backend OpenAPI docs: `http://localhost:8000/docs`
 
-The default Compose stack starts `postgres`, `backend`, and `frontend`. ChromaDB is available behind the optional `memory` profile for future phases:
-
-```bash
-docker compose --profile memory up --build
-```
+The default Compose stack starts `postgres`, `chromadb`, `backend`, and `frontend`.
 
 ## Auth Endpoints
 
@@ -64,7 +62,18 @@ Access and refresh JWTs are stored in HttpOnly cookies. The frontend never store
 - `POST /api/v1/memory/search`
 - `POST /api/v1/memory/reinforce`
 
-Phase 4 memory search is keyword, category, and type based. Embeddings, vector search, RAG, and agent-created memories remain deferred.
+Phase 4 memory search remains keyword, category, and type based. Document RAG is handled by the Knowledge endpoints; agent-created memories remain deferred.
+
+## Knowledge And RAG Endpoints
+
+- `POST /api/v1/documents/upload`
+- `GET /api/v1/documents`
+- `GET /api/v1/documents/{id}`
+- `DELETE /api/v1/documents/{id}`
+- `POST /api/v1/rag/search`
+- `POST /api/v1/rag/query`
+
+Phase 5 supports txt, markdown, and PDF document ingestion. Document metadata is stored in PostgreSQL and chunk vectors are stored in ChromaDB.
 
 ## Development Checks
 

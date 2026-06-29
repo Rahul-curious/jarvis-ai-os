@@ -67,9 +67,9 @@ export function DashboardPage({
         <p className="eyebrow">Control Plane</p>
         <h1 id="dashboard-title">Welcome, {currentUser.full_name}</h1>
         <p className="lede">
-          Authentication, PostgreSQL-backed sessions, audit logging, and the Phase 4
-          Memory Engine are active. RAG, agents, browser automation, and voice remain
-          intentionally disabled for this phase.
+          Authentication, PostgreSQL-backed sessions, audit logging, memory, and the
+          Phase 5 RAG Knowledge Engine are active. Agents, browser automation, and voice
+          remain intentionally disabled for this phase.
         </p>
       </div>
 
@@ -95,6 +95,9 @@ export function DashboardPage({
       <div className="dashboard-actions">
         <button onClick={() => navigate('/memory')} type="button">
           Open memory dashboard
+        </button>
+        <button onClick={() => navigate('/knowledge')} type="button">
+          Open knowledge base
         </button>
         <button className="secondary-button" onClick={handleLogout} type="button">
           Log out

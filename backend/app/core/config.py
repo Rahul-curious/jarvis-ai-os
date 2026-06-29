@@ -28,7 +28,26 @@ class Settings(BaseSettings):
     chroma_host: str = "localhost"
     chroma_port: int = 8001
     chroma_collection_prefix: str = "jarvis"
+    chroma_documents_collection: str = Field(
+        default="documents",
+        alias="CHROMA_DOCUMENTS_COLLECTION",
+    )
     agent_default_recursion_limit: int = 25
+    embedding_provider: Literal["sentence-transformers", "hash"] = Field(
+        default="sentence-transformers",
+        alias="EMBEDDING_PROVIDER",
+    )
+    embedding_model_name: str = Field(
+        default="sentence-transformers/all-MiniLM-L6-v2",
+        alias="EMBEDDING_MODEL_NAME",
+    )
+    embedding_dimensions: int = Field(default=384, alias="EMBEDDING_DIMENSIONS")
+    document_max_upload_bytes: int = Field(
+        default=10 * 1024 * 1024,
+        alias="DOCUMENT_MAX_UPLOAD_BYTES",
+    )
+    document_chunk_size: int = Field(default=1200, alias="DOCUMENT_CHUNK_SIZE")
+    document_chunk_overlap: int = Field(default=180, alias="DOCUMENT_CHUNK_OVERLAP")
     jwt_secret_key: str = Field(
         default="change-me-in-production-with-32-plus-chars",
         alias="JWT_SECRET_KEY",
@@ -67,6 +86,11 @@ class Settings(BaseSettings):
     @property
     def chroma_url(self) -> str:
         return f"http://{self.chroma_host}:{self.chroma_port}"
+
+    @computed_field
+    @property
+    def chroma_document_collection_name(self) -> str:
+        return f"{self.chroma_collection_prefix}_{self.chroma_documents_collection}"
 
 
 @lru_cache

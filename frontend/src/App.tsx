@@ -2,9 +2,11 @@ import { useCallback, useState } from 'react';
 
 import { UserProfile } from './api/client';
 import { DashboardPage } from './pages/DashboardPage';
+import { KnowledgeBasePage } from './pages/KnowledgeBasePage';
 import { LoginPage } from './pages/LoginPage';
 import { MemoryPage } from './pages/MemoryPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { UploadDocumentPage } from './pages/UploadDocumentPage';
 import { useRoute } from './state/router';
 
 export default function App() {
@@ -40,6 +42,24 @@ export default function App() {
 
       {path === '/memory' ? (
         <MemoryPage
+          currentUser={currentUser}
+          navigate={navigate}
+          onLogout={handleLogout}
+          onUserLoaded={handleAuthenticated}
+        />
+      ) : null}
+
+      {path === '/knowledge' ? (
+        <KnowledgeBasePage
+          currentUser={currentUser}
+          navigate={navigate}
+          onLogout={handleLogout}
+          onUserLoaded={handleAuthenticated}
+        />
+      ) : null}
+
+      {path === '/knowledge/upload' ? (
+        <UploadDocumentPage
           currentUser={currentUser}
           navigate={navigate}
           onLogout={handleLogout}
