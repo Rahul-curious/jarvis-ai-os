@@ -4,7 +4,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
-import chromadb
+from app.integrations.chroma import create_chroma_http_client
 
 
 class VectorStoreError(Exception):
@@ -41,7 +41,7 @@ class ChromaVectorStore:
     @classmethod
     def from_http(cls, *, host: str, port: int, collection_name: str) -> ChromaVectorStore:
         return cls(
-            client=chromadb.HttpClient(host=host, port=port),
+            client=create_chroma_http_client(host=host, port=port),
             collection_name=collection_name,
         )
 

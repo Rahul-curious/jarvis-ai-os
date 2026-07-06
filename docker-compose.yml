@@ -20,7 +20,7 @@ services:
       - jarvis
 
   chromadb:
-    image: chromadb/chroma:0.5.23
+    image: chromadb/chroma:1.5.9
     container_name: jarvis-chromadb
     restart: unless-stopped
     ports:
@@ -31,7 +31,7 @@ services:
       IS_PERSISTENT: "TRUE"
       ANONYMIZED_TELEMETRY: "FALSE"
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/heartbeat')"]
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8000'"]
       interval: 10s
       timeout: 5s
       retries: 5

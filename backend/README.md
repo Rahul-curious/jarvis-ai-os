@@ -16,6 +16,10 @@ Phase 5 responsibilities:
 - Store document chunk vectors in ChromaDB.
 - Support document upload/list/detail/delete and RAG search/query APIs.
 
+The Python Chroma client and Chroma server are intentionally pinned to `1.5.9`.
+Upgrade them together because Chroma does not guarantee wire compatibility across
+independently selected client and server releases.
+
 Business logic for autonomous agents, browser automation, and voice is intentionally deferred.
 
 ## Environment

@@ -32,6 +32,7 @@ Implemented:
 - Embedding provider abstraction.
 - Default embedding provider: `sentence-transformers/all-MiniLM-L6-v2`.
 - ChromaDB vector storage and top-k retrieval.
+- Chroma Python client and server pinned together at `1.5.9`.
 - Authenticated document APIs.
 - Authenticated RAG search/query APIs.
 - Knowledge Base and Upload Document frontend pages.
@@ -120,6 +121,7 @@ sequenceDiagram
 | --- | --- |
 | Unsupported or malformed documents | Explicit parser validation and errors |
 | Vector store drift from relational records | Chunk IDs and document IDs are stored in both systems |
+| Chroma client/server protocol mismatch | Pin both components to `1.5.9` and upgrade them together |
 | Unauthorized retrieval | User-scoped metadata filters and authenticated APIs |
 | Large upload cost | Configurable upload size and chunk settings |
 | Poor answer synthesis | Current phase returns grounded context and citations, not unsupported claims |
