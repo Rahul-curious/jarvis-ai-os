@@ -12,8 +12,9 @@ RUN apt-get update \
 
 COPY pyproject.toml README.md ./
 COPY app ./app
+ARG INSTALL_EMBEDDING_EXTRAS=false
 RUN pip install --upgrade pip \
-    && pip install .
+    && if [ "$INSTALL_EMBEDDING_EXTRAS" = "true" ]; then pip install ".[embeddings]"; else pip install .; fi
 
 COPY alembic.ini ./
 COPY alembic ./alembic

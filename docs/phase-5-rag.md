@@ -30,9 +30,10 @@ Implemented:
 - Parser support for `.txt`, `.md`, `.markdown`, and `.pdf`.
 - Deterministic overlapping chunking.
 - Embedding provider abstraction.
-- Default embedding provider: `sentence-transformers/all-MiniLM-L6-v2`.
+- Runtime embedding providers: deterministic hash for local Docker smoke checks and
+  `sentence-transformers/all-MiniLM-L6-v2` when the optional embedding extra is installed.
 - ChromaDB vector storage and top-k retrieval.
-- Chroma Python client and server pinned together at `1.5.9`.
+- Chroma Python client and server pinned together at `0.5.23`.
 - Authenticated document APIs.
 - Authenticated RAG search/query APIs.
 - Knowledge Base and Upload Document frontend pages.
@@ -121,7 +122,7 @@ sequenceDiagram
 | --- | --- |
 | Unsupported or malformed documents | Explicit parser validation and errors |
 | Vector store drift from relational records | Chunk IDs and document IDs are stored in both systems |
-| Chroma client/server protocol mismatch | Pin both components to `1.5.9` and upgrade them together |
+| Chroma client/server protocol mismatch | Pin both components to `0.5.23` and upgrade them together |
 | Unauthorized retrieval | User-scoped metadata filters and authenticated APIs |
 | Large upload cost | Configurable upload size and chunk settings |
 | Poor answer synthesis | Current phase returns grounded context and citations, not unsupported claims |

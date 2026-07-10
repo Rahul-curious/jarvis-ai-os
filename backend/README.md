@@ -16,9 +16,14 @@ Phase 5 responsibilities:
 - Store document chunk vectors in ChromaDB.
 - Support document upload/list/detail/delete and RAG search/query APIs.
 
-The Python Chroma client and Chroma server are intentionally pinned to `1.5.9`.
+The Python Chroma client and Chroma server are intentionally pinned to `0.5.23`.
 Upgrade them together because Chroma does not guarantee wire compatibility across
 independently selected client and server releases.
+
+Local Docker Compose uses the deterministic hash embedding provider by default so
+RAG smoke checks do not require model downloads. To run the sentence-transformer
+provider, set `INSTALL_EMBEDDING_EXTRAS=true` at build time and
+`EMBEDDING_PROVIDER=sentence-transformers` at runtime.
 
 Business logic for autonomous agents, browser automation, and voice is intentionally deferred.
 
