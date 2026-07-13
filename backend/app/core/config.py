@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     )
     agent_default_recursion_limit: int = 25
     embedding_provider: Literal["sentence-transformers", "hash"] = Field(
-        default="sentence-transformers",
+        default="hash",
         alias="EMBEDDING_PROVIDER",
     )
     embedding_model_name: str = Field(

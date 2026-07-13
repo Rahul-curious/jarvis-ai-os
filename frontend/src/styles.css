@@ -157,6 +157,14 @@ button:disabled {
   color: #ffd5dd;
 }
 
+.form-success {
+  border: 1px solid #2c7a4f;
+  border-radius: 6px;
+  padding: 12px 14px;
+  background: #10301f;
+  color: #c8f4d9;
+}
+
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -342,6 +350,18 @@ dd {
 .rag-answer h2,
 .rag-answer h3 {
   margin: 0;
+}
+
+.citation-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-left: 20px;
+  color: #afbdd0;
+}
+
+.citation-list li {
+  line-height: 1.5;
 }
 
 .knowledge-query-form,

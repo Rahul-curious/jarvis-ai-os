@@ -147,7 +147,9 @@ export type RagSearchResult = {
   chunk_index: number;
   content: string;
   distance: number | null;
+  confidence: number | null;
   citation: string;
+  citation_label: string;
   metadata: Record<string, unknown>;
 };
 
@@ -162,6 +164,7 @@ export type RagCitation = {
   chunk_id: string;
   chunk_index: number;
   citation: string;
+  citation_label: string;
 };
 
 export type RagQueryResponse = {

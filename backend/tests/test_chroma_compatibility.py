@@ -3,18 +3,35 @@ from __future__ import annotations
 import uuid
 from importlib.metadata import version
 
-import chromadb
+from fakes import InMemoryChromaClient
 
 from app.domains.documents.vector_store import ChromaVectorStore, VectorRecord
+from app.integrations import chroma as chroma_integration
 
 
 def test_chromadb_dependency_matches_compose_server_version() -> None:
     assert version("chromadb") == "0.5.23"
 
 
+def test_chroma_http_client_initialization_uses_pinned_client_signature(monkeypatch) -> None:
+    calls: dict[str, object] = {}
+
+    class FakeHttpClient:
+        def __init__(self, *, host: str, port: int) -> None:
+            calls["host"] = host
+            calls["port"] = port
+
+    monkeypatch.setattr(chroma_integration.chromadb, "HttpClient", FakeHttpClient)
+
+    client = chroma_integration.create_chroma_http_client(host="chroma", port=8001)
+
+    assert isinstance(client, FakeHttpClient)
+    assert calls == {"host": "chroma", "port": 8001}
+
+
 def test_chroma_collection_contract_supports_document_vector_lifecycle() -> None:
     store = ChromaVectorStore(
-        client=chromadb.EphemeralClient(),
+        client=InMemoryChromaClient(),
         collection_name=f"test_chroma_compatibility_{uuid.uuid4().hex}",
     )
     user_id = uuid.uuid4()

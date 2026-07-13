@@ -67,7 +67,9 @@ class RagSearchResult(BaseModel):
     chunk_index: int
     content: str
     distance: float | None
+    confidence: float | None
     citation: str
+    citation_label: str
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -82,6 +84,7 @@ class RagCitation(BaseModel):
     chunk_id: uuid.UUID
     chunk_index: int
     citation: str
+    citation_label: str
 
 
 class RagQueryRequest(RagSearchRequest):

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import re
 import uuid
 from typing import Any
 
@@ -38,6 +39,30 @@ class DocumentValidationError(Exception):
 
 class DocumentProcessingError(Exception):
     """Raised when ingestion or retrieval processing fails."""
+
+
+ANSWER_SENTENCE_LIMIT = 3
+ANSWER_SENTENCE_MAX_CHARS = 320
+ANSWER_STOP_WORDS = {
+    "about",
+    "after",
+    "also",
+    "from",
+    "have",
+    "into",
+    "that",
+    "the",
+    "their",
+    "there",
+    "this",
+    "what",
+    "when",
+    "where",
+    "which",
+    "with",
+    "would",
+    "your",
+}
 
 
 def serialize_document(document: Document) -> DocumentRead:
@@ -297,6 +322,7 @@ class RagSearchService(BaseDocumentService):
             chunk = chunks_by_id.get(hit.chunk_id)
             if chunk is None:
                 continue
+            citation = self._citation(chunk.document.filename, chunk.chunk_index)
             results.append(
                 RagSearchResult(
                     document_id=chunk.document_id,
@@ -305,7 +331,9 @@ class RagSearchService(BaseDocumentService):
                     chunk_index=chunk.chunk_index,
                     content=chunk.content,
                     distance=hit.distance,
-                    citation=self._citation(chunk.document.filename, chunk.chunk_index),
+                    confidence=self._confidence(hit.distance),
+                    citation=citation,
+                    citation_label=citation,
                     metadata=hit.metadata,
                 )
             )
@@ -313,7 +341,12 @@ class RagSearchService(BaseDocumentService):
         return RagSearchResponse(query=payload.query, results=results)
 
     def _citation(self, filename: str, chunk_index: int) -> str:
-        return f"{filename}#chunk-{chunk_index + 1}"
+        return f"{filename} - Chunk {chunk_index + 1}"
+
+    def _confidence(self, distance: float | None) -> float | None:
+        if distance is None:
+            return None
+        return round(max(0.0, min(1.0, 1.0 / (1.0 + max(distance, 0.0)))), 4)
 
 
 class RagQueryService(RagSearchService):
@@ -326,6 +359,7 @@ class RagQueryService(RagSearchService):
                 chunk_id=result.chunk_id,
                 chunk_index=result.chunk_index,
                 citation=result.citation,
+                citation_label=result.citation_label,
             )
             for result in search_response.results
         ]
@@ -339,15 +373,77 @@ class RagQueryService(RagSearchService):
 
     def _build_grounded_answer(self, question: str, results: list[RagSearchResult]) -> str:
         if not results:
-            return "I could not find relevant uploaded knowledge for that question."
+            return (
+                "I could not find relevant uploaded knowledge for that question. "
+                "Try uploading a related document or broadening the query."
+            )
 
-        snippets = [
-            f"[{index}] {result.content}"
-            for index, result in enumerate(results[:3], start=1)
+        selected = self._select_grounded_statements(question, results)
+        if not selected:
+            return (
+                "I found uploaded knowledge, but it did not contain a concise answer "
+                "to the question. Review the cited chunks for the available context."
+            )
+
+        statements = [sentence for sentence, _citation in selected]
+        citations = ", ".join(dict.fromkeys(citation for _sentence, citation in selected))
+        return " ".join(statements) + f"\n\nCitations: {citations}"
+
+    def _select_grounded_statements(
+        self,
+        question: str,
+        results: list[RagSearchResult],
+    ) -> list[tuple[str, str]]:
+        query_terms = self._query_terms(question)
+        candidates: list[tuple[int, int, str, str]] = []
+        seen: set[str] = set()
+
+        for result_index, result in enumerate(results):
+            for sentence in self._split_sentences(result.content):
+                normalized = " ".join(sentence.lower().split())
+                if not normalized or normalized in seen:
+                    continue
+                seen.add(normalized)
+                terms = self._query_terms(sentence)
+                score = len(query_terms & terms)
+                candidates.append(
+                    (
+                        score,
+                        -result_index,
+                        self._trim_sentence(sentence),
+                        result.citation_label,
+                    )
+                )
+
+        candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        selected = [
+            (sentence, citation)
+            for score, _index, sentence, citation in candidates
+            if score > 0
         ]
-        return (
-            "Grounded answer from uploaded knowledge:\n\n"
-            + "\n\n".join(snippets)
-            + "\n\nCitations: "
-            + ", ".join(result.citation for result in results)
-        )
+        if not selected:
+            selected = [
+                (sentence, citation)
+                for _score, _index, sentence, citation in candidates
+            ]
+        return selected[:ANSWER_SENTENCE_LIMIT]
+
+    def _query_terms(self, text: str) -> set[str]:
+        return {
+            token
+            for token in re.findall(r"[a-zA-Z0-9]+", text.lower())
+            if len(token) > 3 and token not in ANSWER_STOP_WORDS
+        }
+
+    def _split_sentences(self, text: str) -> list[str]:
+        normalized = re.sub(r"\s+", " ", text.strip())
+        return [
+            part.strip()
+            for part in re.split(r"(?<=[.!?])\s+", normalized)
+            if part.strip()
+        ]
+
+    def _trim_sentence(self, sentence: str) -> str:
+        if len(sentence) <= ANSWER_SENTENCE_MAX_CHARS:
+            return sentence
+        return sentence[: ANSWER_SENTENCE_MAX_CHARS - 3].rstrip() + "..."

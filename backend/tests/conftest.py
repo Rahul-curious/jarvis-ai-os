@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator, Iterator
 
-import chromadb
 import pytest
+from fakes import InMemoryChromaClient
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -51,7 +51,7 @@ def client() -> Iterator[TestClient]:
 
     embedding_provider = HashEmbeddingProvider(dimensions=settings.embedding_dimensions)
     vector_store = ChromaVectorStore(
-        client=chromadb.EphemeralClient(),
+        client=InMemoryChromaClient(),
         collection_name=f"{settings.chroma_document_collection_name}_{id(engine)}",
     )
 

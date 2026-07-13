@@ -15,6 +15,7 @@ Phase 5 responsibilities:
 - Persist document metadata and chunk records in PostgreSQL.
 - Store document chunk vectors in ChromaDB.
 - Support document upload/list/detail/delete and RAG search/query APIs.
+- Return extractive grounded answers with readable citations and confidence signals.
 
 The Python Chroma client and Chroma server are intentionally pinned to `0.5.23`.
 Upgrade them together because Chroma does not guarantee wire compatibility across

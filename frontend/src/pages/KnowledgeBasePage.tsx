@@ -38,7 +38,9 @@ export function KnowledgeBasePage({
   const [searchResults, setSearchResults] = useState<RagSearchResult[]>([]);
   const [queryResponse, setQueryResponse] = useState<RagQueryResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -79,7 +81,7 @@ export function KnowledgeBasePage({
         if (current === null) {
           return response.items[0] ?? null;
         }
-        return response.items.find((document) => document.id === current.id) ?? response.items[0] ?? null;
+        return response.items.find((document) => document.id === current.id) ?? null;
       });
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Unable to load documents');
@@ -102,6 +104,7 @@ export function KnowledgeBasePage({
 
   async function handleSelectDocument(documentId: string) {
     setError(null);
+    setNotice(null);
     try {
       const document = await getDocument(documentId);
       setSelectedDocument(document);
@@ -112,19 +115,43 @@ export function KnowledgeBasePage({
 
   async function handleDeleteDocument(documentId: string) {
     setError(null);
+    setNotice(null);
     try {
       await deleteDocument(documentId);
       setSelectedDocument(null);
+      setSearchResults((results) =>
+        results.filter((result) => result.document_id !== documentId),
+      );
+      setQueryResponse((current) => {
+        if (current === null) {
+          return null;
+        }
+        const context = current.context.filter((result) => result.document_id !== documentId);
+        const citations = current.citations.filter(
+          (citation) => citation.document_id !== documentId,
+        );
+        return context.length === 0 ? null : { ...current, context, citations };
+      });
+      setNotice('Document deleted. Its vectors have been removed from search.');
       await loadDocuments();
     } catch (caught) {
       setError(caught instanceof ApiError ? caught.message : 'Unable to delete document');
     }
   }
 
+  function handleQueryChange(value: string) {
+    setQuery(value);
+    setError(null);
+    setNotice(null);
+    setHasSearched(false);
+  }
+
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setNotice(null);
     setIsSearching(true);
+    setHasSearched(true);
     setQueryResponse(null);
 
     try {
@@ -143,7 +170,9 @@ export function KnowledgeBasePage({
 
   async function handleQuery() {
     setError(null);
+    setNotice(null);
     setIsSearching(true);
+    setHasSearched(true);
 
     try {
       const response = await queryKnowledge({
@@ -192,6 +221,7 @@ export function KnowledgeBasePage({
       </header>
 
       {error ? <p className="form-error">{error}</p> : null}
+      {notice ? <p className="form-success">{notice}</p> : null}
 
       <div className="memory-layout">
         <section className="memory-panel" aria-label="Document list">
@@ -201,7 +231,9 @@ export function KnowledgeBasePage({
           </div>
 
           {documents.length === 0 ? (
-            <p className="empty-state">No documents are indexed yet.</p>
+            <p className="empty-state">
+              No documents are indexed yet. Upload TXT, Markdown, or PDF knowledge to begin.
+            </p>
           ) : (
             <div className="memory-list">
               {documents.map((document) => (
@@ -279,7 +311,7 @@ export function KnowledgeBasePage({
           <label>
             Question or search query
             <input
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => handleQueryChange(event.target.value)}
               required
               type="search"
               value={query}
@@ -304,7 +336,7 @@ export function KnowledgeBasePage({
             onClick={() => void handleQuery()}
             type="button"
           >
-            Query answer
+            {isSearching ? 'Working...' : 'Query answer'}
           </button>
         </form>
 
@@ -312,15 +344,29 @@ export function KnowledgeBasePage({
           <article className="rag-answer">
             <h3>Grounded answer</h3>
             <p>{queryResponse.answer}</p>
+            {queryResponse.citations.length > 0 ? (
+              <ul className="citation-list">
+                {queryResponse.citations.map((citation) => (
+                  <li key={citation.chunk_id}>{citation.citation_label}</li>
+                ))}
+              </ul>
+            ) : null}
           </article>
+        ) : null}
+
+        {isSearching ? <p className="status-message">Searching indexed chunks...</p> : null}
+        {!isSearching && hasSearched && searchResults.length === 0 ? (
+          <p className="empty-state">
+            No matching chunks found. Try a broader query or upload more relevant knowledge.
+          </p>
         ) : null}
 
         <div className="chunk-list">
           {searchResults.map((result) => (
             <article className="chunk-card" key={result.chunk_id}>
               <span>
-                {result.citation}
-                {result.distance !== null ? ` · distance ${result.distance.toFixed(4)}` : ''}
+                {result.citation_label}
+                {result.confidence !== null ? ` - ${formatConfidence(result.confidence)} match` : ''}
               </span>
               <p>{result.content}</p>
             </article>
@@ -339,4 +385,8 @@ function formatFileSize(bytes: number): string {
     return `${(bytes / 1024).toFixed(1)} KB`;
   }
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function formatConfidence(confidence: number): string {
+  return `${Math.round(confidence * 100)}%`;
 }

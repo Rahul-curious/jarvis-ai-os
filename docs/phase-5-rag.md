@@ -4,7 +4,7 @@
 
 Phase 5 adds the first retrieval-augmented generation foundation for JARVIS. Users can upload supported documents, the backend parses and chunks them, embeddings are generated through a provider abstraction, vectors are stored in ChromaDB, and PostgreSQL keeps durable metadata for documents and chunks.
 
-This phase returns grounded context and citations from uploaded knowledge. It does not implement autonomous agents, browser ingestion, voice, or advanced LLM synthesis.
+This phase returns grounded context, readable citations, retrieval confidence, and a concise extractive answer synthesized only from uploaded knowledge. It does not implement autonomous agents, browser ingestion, voice, or advanced LLM synthesis.
 
 ## Architecture
 
@@ -18,7 +18,7 @@ flowchart LR
     Query["User Query"] --> QueryEmbed["Embed Query"]
     QueryEmbed --> Chroma
     Chroma --> Hydrate["Hydrate Chunks From PostgreSQL"]
-    Hydrate --> Response["Context And Citations"]
+    Hydrate --> Response["Extractive Answer, Context, Confidence, Citations"]
 ```
 
 ## Scope
@@ -34,13 +34,15 @@ Implemented:
   `sentence-transformers/all-MiniLM-L6-v2` when the optional embedding extra is installed.
 - ChromaDB vector storage and top-k retrieval.
 - Chroma Python client and server pinned together at `0.5.23`.
+- Extractive grounded answer synthesis from retrieved chunks.
+- Human-readable citation labels and confidence scores for search results.
 - Authenticated document APIs.
 - Authenticated RAG search/query APIs.
 - Knowledge Base and Upload Document frontend pages.
 
 Deferred:
 
-- LLM-generated answer synthesis.
+- Generative LLM answer synthesis beyond retrieved source text.
 - Async ingestion workers.
 - Workspace-scoped knowledge collections.
 - Enterprise connector ingestion.
@@ -113,7 +115,7 @@ sequenceDiagram
     Chroma-->>API: Chunk vector hits
     API->>DB: Hydrate chunk metadata and text
     DB-->>API: Chunks and document metadata
-    API-->>Client: Grounded answer, context, citations
+    API-->>Client: Extractive answer, context, confidence, citations
 ```
 
 ## Risks
@@ -125,7 +127,7 @@ sequenceDiagram
 | Chroma client/server protocol mismatch | Pin both components to `0.5.23` and upgrade them together |
 | Unauthorized retrieval | User-scoped metadata filters and authenticated APIs |
 | Large upload cost | Configurable upload size and chunk settings |
-| Poor answer synthesis | Current phase returns grounded context and citations, not unsupported claims |
+| Poor answer synthesis | Current phase uses extractive synthesis from retrieved chunks and returns citations separately |
 
 ## Migration
 
