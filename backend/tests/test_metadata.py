@@ -11,4 +11,9 @@ def test_auth_metadata_contains_required_tables() -> None:
         "memory_references",
         "documents",
         "document_chunks",
+        "agent_definitions",
+        "agent_runs",
+        "agent_steps",
+        "agent_events",
+        "agent_artifacts",
     }.issubset(Base.metadata.tables.keys())
