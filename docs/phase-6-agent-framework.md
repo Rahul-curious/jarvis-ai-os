@@ -25,7 +25,7 @@ Phase 6 should add an agent layer beside existing Memory and RAG services. It sh
 
 - Provide a production-grade foundation for user-requested agent runs.
 - Persist agent definitions, runs, steps, events, context references, and outputs.
-- Integrate with Memory and RAG through stable service-layer adapters.
+- Provide extensible context provider interfaces that allow future integration with Memory and RAG through stable service-layer adapters.
 - Use LangGraph for orchestrated state transitions while keeping persistence, authorization, and audit in the backend.
 - Support a synchronous MVP run path with a clean route to future async workers, streaming, and resumable runs.
 - Preserve user isolation, current HttpOnly cookie authentication, auditability, and least-privilege data access.
@@ -87,22 +87,22 @@ flowchart TB
 
     AgentService --> AgentRepo["AgentRepository"]
     AgentRepo --> Postgres["PostgreSQL"]
+
     AgentService --> Audit["Audit Service"]
     AgentService --> ContextAssembler["AgentContextAssembler"]
 
-    ContextAssembler --> MemoryProvider["MemoryContextProvider"]
-    ContextAssembler --> KnowledgeProvider["KnowledgeContextProvider"]
-    MemoryProvider --> MemoryServices["Memory Services"]
-    KnowledgeProvider --> RagServices["RAG Services"]
+    ContextAssembler --> ConversationProvider["ConversationHistoryProvider"]
+    ContextAssembler --> RuntimeProvider["RuntimeMetadataProvider"]
+    ContextAssembler --> UserProvider["UserInformationProvider"]
+    ContextAssembler --> ConfigProvider["AgentConfigurationProvider"]
+    ContextAssembler --> MemoryProvider["MemoryContextProvider (Extension Point)"]
+    ContextAssembler --> KnowledgeProvider["KnowledgeContextProvider (Extension Point)"]
 
     AgentService --> RuntimeAdapter["AgentRuntimeAdapter"]
+
     RuntimeAdapter --> LangGraph["jarvis_agents LangGraph"]
     LangGraph --> Planner["Planner Node"]
     LangGraph --> Synthesizer["Synthesizer Node"]
-
-    MemoryServices --> Postgres
-    RagServices --> Postgres
-    RagServices --> Chroma["ChromaDB"]
 ```
 
 ## Folder Structure
@@ -151,6 +151,7 @@ agents/tests/
 
 ```mermaid
 classDiagram
+
     class AgentRunService {
         +create_run(current_user, payload, request)
         +get_run(current_user, run_id)
@@ -170,14 +171,33 @@ classDiagram
 
     class AgentContextAssembler {
         +build_context(current_user, request)
+        +register_provider(provider)
+        +validate_context()
+        +merge_context()
+    }
+
+    class ConversationHistoryProvider {
+        +build_context()
+    }
+
+    class RuntimeMetadataProvider {
+        +build_context()
+    }
+
+    class UserInformationProvider {
+        +build_context()
+    }
+
+    class AgentConfigurationProvider {
+        +build_context()
     }
 
     class MemoryContextProvider {
-        +search_relevant_memories(current_user, query)
+        +build_context()
     }
 
     class KnowledgeContextProvider {
-        +retrieve_knowledge(current_user, query, top_k)
+        +build_context()
     }
 
     class AgentRuntimeAdapter {
@@ -192,8 +212,7 @@ classDiagram
         +run_id
         +task
         +status
-        +memory_context
-        +knowledge_context
+        +execution_context
         +messages
         +events
         +output
@@ -203,12 +222,16 @@ classDiagram
     AgentRunService --> AgentRepository
     AgentRunService --> AgentContextAssembler
     AgentRunService --> AgentRuntimeAdapter
-    AgentRunService --> AuditLog
+
+    AgentContextAssembler --> ConversationHistoryProvider
+    AgentContextAssembler --> RuntimeMetadataProvider
+    AgentContextAssembler --> UserInformationProvider
+    AgentContextAssembler --> AgentConfigurationProvider
     AgentContextAssembler --> MemoryContextProvider
     AgentContextAssembler --> KnowledgeContextProvider
+
     AgentRuntimeAdapter --> AgentRunState
 ```
-
 ## Agent Lifecycle
 
 ```mermaid
@@ -251,32 +274,32 @@ sequenceDiagram
     participant API as Agents API
     participant Auth as Auth Dependency
     participant Service as AgentRunService
-    participant Context as Context Assembler
-    participant Memory as Memory Service
-    participant RAG as RAG Service
-    participant Runtime as LangGraph Runtime
+    participant Context as AgentContextAssembler
+    participant Runtime as AgentRuntimeAdapter
     participant DB as PostgreSQL
     participant Audit as Audit Service
 
     Client->>API: POST /api/v1/agents/runs
     API->>Auth: Resolve current user
     Auth-->>API: User
+
     API->>Service: create_run(payload, user)
+
     Service->>DB: Insert agent_run(status=requested)
     Service->>Audit: Record agents.run.requested
-    Service->>Context: Build run context
-    Context->>Memory: Search relevant memories
-    Memory-->>Context: Memory context
-    Context->>RAG: Search/query uploaded knowledge
-    RAG-->>Context: Knowledge context and citations
+
+    Service->>Context: Build execution context
+    Context-->>Service: Execution Context
+
     Service->>Runtime: Invoke graph(initial_state)
     Runtime-->>Service: Output and events
+
     Service->>DB: Persist steps, events, output, status
     Service->>Audit: Record agents.run.succeeded
+
     Service-->>API: AgentRunRead
     API-->>Client: Run response
 ```
-
 ## API Integration Strategy
 
 Phase 6 should add routes without changing existing Memory, RAG, Auth, or User endpoints.
@@ -302,10 +325,10 @@ Representative request:
   "agent_type": "assistant",
   "task": "Summarize my uploaded knowledge about the deployment plan.",
   "context": {
-    "include_memory": true,
-    "include_knowledge": true,
-    "top_k": 5
-  }
+    "include_conversation": true,
+    "include_runtime": true,
+    "include_user": true
+}
 }
 ```
 
@@ -325,80 +348,48 @@ Representative response:
 }
 ```
 
-## Memory Integration Strategy
 
-Agents should consume Memory through a `MemoryContextProvider`, not through direct repository access.
 
-Responsibilities:
-
-- Call existing memory services with the authenticated user.
-- Apply conservative defaults: user-scoped retrieval, active memories only, bounded limit.
-- Return typed snippets with memory ID, type, category, score, and content.
-- Reinforce memories only when the final output explicitly uses them or a later user action confirms usefulness.
-- Never create memories silently in Phase 6.
-
-Initial retrieval policy:
-
-- Search keyword terms from the task.
-- Include `user_preference`, `project`, `long_term`, and `correction` memories by default.
-- Exclude expired short-term memories unless short-term context is explicitly requested.
-- Cap memory context size to avoid prompt bloat and overexposure.
-
-Future memory expansion:
-
-- Agent-proposed memories with user review.
-- Memory conflict detection.
-- Semantic memory retrieval after memory embeddings exist.
-- Workspace-scoped memory after workspace models exist.
-
-## Knowledge Integration Strategy
-
-Agents should consume uploaded knowledge through a `KnowledgeContextProvider`.
-
-Responsibilities:
-
-- Call `RagSearchService` for retrieval context.
-- Optionally call `RagQueryService` for extractive answer context when the task is question-like.
-- Preserve citations and confidence scores in agent state.
-- Never bypass document ownership filters enforced by RAG services.
-- Avoid writing to documents, chunks, embeddings, or ChromaDB during agent execution.
-
-Initial retrieval policy:
-
-- Use request `top_k`, capped by existing RAG request limits.
-- Keep `document_id`, `chunk_id`, `citation_label`, and confidence in state.
-- Include source snippets as context, not as final output unless a synthesizer uses them.
-
-Future knowledge expansion:
-
-- Hybrid keyword/vector search.
-- Workspace collections.
-- Connector-backed sources.
-- Source freshness and quality scoring.
 
 ## Dependency Injection Strategy
 
-Phase 6 should follow existing FastAPI dependency conventions:
+Phase 6 should follow the existing FastAPI dependency conventions and keep all dependencies explicit, testable, and replaceable.
+
+General principles:
 
 - Define route constants for `DB_SESSION_DEP`, `SETTINGS_DEP`, and `CURRENT_USER_DEP`.
-- Add shared agent-specific providers in `backend/app/api/dependencies.py` only when multiple routes need them.
+- Add shared agent-specific providers in `backend/app/api/dependencies.py` only when multiple routes require them.
 - Keep dependencies explicit in route signatures.
-- Construct services in routes with injected dependencies.
-- Keep LangGraph creation behind `AgentRuntimeAdapter` so tests can replace it with fakes.
+- Construct services using dependency injection rather than global state.
+- Keep `AgentRuntimeAdapter` behind a dependency so tests can replace it with fakes or mock implementations.
+- Keep `AgentContextAssembler` independent of infrastructure-specific implementations.
 
-Proposed providers:
+### Proposed Providers
 
 - `get_agent_runtime_adapter(settings)`
-- `get_agent_context_assembler(db, settings, embedding_provider, vector_store)`
+- `get_agent_context_assembler(settings)`
 - `get_agent_policy(settings)`
 
-Avoid:
+During Phase 6.3, `AgentContextAssembler` should assemble context only from the providers implemented in this milestone:
+
+- Conversation History Provider
+- Runtime Metadata Provider
+- User Information Provider
+- Agent Configuration Provider
+
+`MemoryContextProvider` and `KnowledgeContextProvider` are registered as extension interfaces only. They do not require Memory, RAG, embedding, or vector store dependencies during this milestone. Concrete dependency injection for Memory and Knowledge providers is introduced in:
+
+- Phase 6.7 – Memory Integration
+- Phase 6.8 – Knowledge Integration
+
+### Avoid
 
 - Global mutable graph state.
 - Direct database access from graph nodes.
 - FastAPI imports inside the `agents` package.
 - SQLAlchemy imports inside the `agents` package.
 - Passing `Request` objects into graph nodes.
+- Coupling `AgentContextAssembler` directly to Memory or RAG infrastructure before their respective integration phases.
 
 ## Error Handling
 
@@ -448,8 +439,7 @@ Audit events:
 - `agents.run.succeeded`
 - `agents.run.failed`
 - `agents.run.cancelled`
-- `agents.context.memory_retrieved`
-- `agents.context.knowledge_retrieved`
+
 
 Do not log:
 
@@ -471,9 +461,20 @@ Testing should be layered and milestone-specific.
 
 ### Context Integration Tests
 
-- Use existing Memory fixtures to create memories.
-- Use existing RAG fakes and upload/search helpers to create knowledge context.
-- Verify context includes memory and knowledge references without mutating Memory or RAG data.
+- Test Conversation Provider
+
+- Test Runtime Provider
+
+- Test User Provider
+
+- Test Config Provider
+
+- Test Context Merge
+
+- Test Validation
+
+- Test Limits
+
 
 ### Runtime Tests
 
@@ -499,7 +500,6 @@ Testing should be layered and milestone-specific.
 
 - All agent endpoints must require current user authentication.
 - Agent runs must be user-scoped until tenants/workspaces are implemented.
-- Context retrieval must use existing Memory and RAG user filters.
 - Agents must not create, edit, or delete memories in Phase 6.
 - Agents must not upload, delete, or mutate knowledge sources in Phase 6.
 - Tool execution is out of scope and denied by default.
@@ -525,14 +525,13 @@ Medium-term:
 - Add run leasing and heartbeat timestamps.
 - Add resumable LangGraph checkpoints.
 - Stream run events to clients.
-- Cache repeated retrieval context.
 
 Long-term:
 
 - Partition agent runs by tenant/workspace.
 - Store high-volume events in append-only event storage.
 - Separate orchestration workers from API containers.
-- Add budget enforcement for model calls, retrieval, and future tool calls.
+
 
 ## Future Extensibility
 
@@ -622,35 +621,57 @@ Suggested commit message:
 
 ### Milestone 3: Context Provider Adapters
 
-Purpose:
+Purpose
 
-Integrate agents with Memory and RAG using stable service adapters.
+Build the Context Assembly foundation for the Agent Framework.
 
-Deliverables:
+Deliverables
 
-- `AgentContextAssembler`.
-- `MemoryContextProvider`.
-- `KnowledgeContextProvider`.
-- Context request/response value objects.
-- Tests proving context retrieval is user-scoped and read-only.
+• AgentContextAssembler
 
-Files expected to change:
+• Context Builder
 
-- `backend/app/domains/agents/context.py`
-- `backend/app/domains/agents/services.py`
-- `backend/tests/test_agents_context.py`
-- Existing test fixtures only if needed for reuse.
+• Context Models
 
-Acceptance criteria:
+• Context Validation
 
-- Agent context can include relevant memories.
-- Agent context can include RAG chunks, confidence, and citation labels.
-- Context retrieval does not create, update, or delete memories/documents.
-- Retrieval failures become structured agent errors.
+• Context Merge Strategy
 
-Suggested commit message:
+• Conversation History Provider
 
-`Integrate agent context with memory and knowledge services`
+• Runtime Metadata Provider
+
+• User Information Provider
+
+• Agent Configuration Provider
+
+• MemoryContextProvider (Extension Interface Only)
+
+• KnowledgeContextProvider (Extension Interface Only)
+
+• Unit Tests
+
+Acceptance Criteria
+
+✓ Context Assembly builds a validated execution context.
+
+✓ Providers can be registered and composed.
+
+✓ MemoryContextProvider exists only as an interface.
+
+✓ KnowledgeContextProvider exists only as an interface.
+
+✓ No Memory retrieval.
+
+✓ No RAG retrieval.
+
+✓ No Memory Engine changes.
+
+✓ No Knowledge Engine changes.
+
+Suggested Commit
+
+feat(context): implement Phase 6.3 Context Assembly
 
 ### Milestone 4: LangGraph Runtime Adapter
 
@@ -829,4 +850,10 @@ Before Phase 6 is released:
 
 ## Final Architecture Position
 
-Phase 6 should make JARVIS agent-capable, not fully autonomous. The correct foundation is a governed run model, durable lifecycle, context assembly from trusted Memory and RAG services, and a replaceable LangGraph runtime boundary. This gives JARVIS a safe path from current assistant and knowledge features toward future multi-agent systems without destabilizing completed Phase 0-5 work.
+Phase 6 establishes the foundation for JARVIS to become an agent-capable platform while remaining safe, modular, and production-ready.
+
+The foundation consists of a governed run model, a durable execution lifecycle, a modular Context Assembly pipeline, and a replaceable LangGraph runtime boundary.
+
+Context Assembly is intentionally designed around extensible provider interfaces so that future phases can integrate Memory, Knowledge (RAG), tools, and additional context sources without changing the core orchestration architecture.
+
+This incremental design allows JARVIS to evolve toward advanced multi-agent systems while preserving the stability of the completed Phase 0–5 platform.
