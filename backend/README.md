@@ -28,6 +28,11 @@ provider, set `INSTALL_EMBEDDING_EXTRAS=true` at build time and
 
 Business logic for autonomous agents, browser automation, and voice is intentionally deferred.
 
+Issue #2 provides the framework-agnostic agent runtime contract and lifecycle
+configuration. The default `AGENT_RUNTIME_BACKEND=unconfigured` intentionally
+does not execute agent workflows; a future runtime adapter can be injected
+without changing this contract.
+
 ## Environment
 
 Required production-sensitive settings:
@@ -41,6 +46,8 @@ Required production-sensitive settings:
 - `CHROMA_PORT`
 - `EMBEDDING_PROVIDER`
 - `EMBEDDING_MODEL_NAME`
+- `AGENT_RUNTIME_BACKEND`
+- `AGENT_RUNTIME_TIMEOUT_SECONDS`
 
 Local defaults are documented in the repository `.env.example`.
 

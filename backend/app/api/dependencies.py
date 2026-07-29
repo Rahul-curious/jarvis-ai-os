@@ -5,6 +5,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
+from app.domains.agents.factory import AgentRuntimeFactory
+from app.domains.agents.runtime import AgentRuntime
 from app.domains.documents.embeddings import (
     EmbeddingProvider,
     HashEmbeddingProvider,
@@ -55,3 +57,10 @@ def get_vector_store(settings: Settings = SETTINGS_DEP) -> ChromaVectorStore:
         port=settings.chroma_port,
         collection_name=settings.chroma_document_collection_name,
     )
+
+
+def get_agent_runtime(settings: Settings = SETTINGS_DEP) -> AgentRuntime:
+    return AgentRuntimeFactory.from_settings(settings)
+
+
+AGENT_RUNTIME_DEP = Depends(get_agent_runtime)

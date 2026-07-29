@@ -35,5 +35,44 @@ class AgentLifecycleError(AgentValidationError):
 
 
 class AgentRuntimeError(AgentError):
-    """Reserved for runtime failures handled by a future execution adapter."""
+    """Base error for runtime failures returned by the runtime boundary."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "runtime_error",
+        retryable: bool = False,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.code = code
+        self.retryable = retryable
+
+
+class AgentRuntimeConfigurationError(AgentRuntimeError):
+    """Raised when a requested runtime backend is not configured."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, code="runtime_configuration")
+
+
+class AgentRuntimeLimitError(AgentRuntimeError):
+    """Raised when a runtime safety limit is exceeded."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, code="runtime_limit")
+
+
+class AgentTimeoutError(AgentRuntimeError):
+    """Raised when a runtime execution exceeds its configured timeout."""
+
+    def __init__(self, message: str = "Runtime execution timed out") -> None:
+        super().__init__(message, code="runtime_timeout", retryable=True)
+
+
+class AgentCancelledError(AgentRuntimeError):
+    """Raised when a runtime execution is cancelled."""
+
+    def __init__(self, message: str = "Runtime execution was cancelled") -> None:
+        super().__init__(message, code="runtime_cancelled")

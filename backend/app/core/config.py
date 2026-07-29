@@ -33,6 +33,27 @@ class Settings(BaseSettings):
         alias="CHROMA_DOCUMENTS_COLLECTION",
     )
     agent_default_recursion_limit: int = 25
+    agent_runtime_backend: str = Field(default="unconfigured", alias="AGENT_RUNTIME_BACKEND")
+    agent_runtime_timeout_seconds: float = Field(
+        default=300.0,
+        alias="AGENT_RUNTIME_TIMEOUT_SECONDS",
+    )
+    agent_runtime_max_task_length: int = Field(
+        default=20_000,
+        alias="AGENT_RUNTIME_MAX_TASK_LENGTH",
+    )
+    agent_runtime_max_metadata_keys: int = Field(
+        default=100,
+        alias="AGENT_RUNTIME_MAX_METADATA_KEYS",
+    )
+    agent_runtime_max_metadata_bytes: int = Field(
+        default=64_000,
+        alias="AGENT_RUNTIME_MAX_METADATA_BYTES",
+    )
+    agent_runtime_max_events: int = Field(
+        default=1_000,
+        alias="AGENT_RUNTIME_MAX_EVENTS",
+    )
     embedding_provider: Literal["sentence-transformers", "hash"] = Field(
         default="hash",
         alias="EMBEDDING_PROVIDER",
