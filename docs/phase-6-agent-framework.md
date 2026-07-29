@@ -38,7 +38,7 @@ Phase 6 should design and later implement:
 - Agent run API resources under `/api/v1/agents`.
 - Agent domain models for definitions, runs, steps, events, and artifacts.
 - Backend services for validation, authorization, persistence, audit, context assembly, and runtime invocation.
-- Context providers that call existing Memory and RAG services.
+- Extensible context provider interfaces and the Context Assembly pipeline. Concrete Memory and Knowledge provider integrations are implemented in later phases.
 - A LangGraph runtime adapter that executes a minimal planner/synthesizer graph.
 - Explicit lifecycle states and safe error transitions.
 - Structured run events suitable for future streaming.
@@ -61,15 +61,21 @@ Phase 6 should not implement:
 
 ## Architecture Overview
 
-The Agent Framework should sit above existing capabilities:
+The Agent Framework sits above the existing platform capabilities and orchestrates the complete agent execution lifecycle while remaining independent of infrastructure-specific implementations.
 
-- API routes accept authenticated run requests.
-- `AgentRunService` validates the request, creates durable run records, assembles context, invokes a runtime adapter, persists events, and returns typed responses.
-- `AgentContextAssembler` coordinates Memory and Knowledge providers.
-- `MemoryContextProvider` calls Memory services and returns bounded, user-scoped memory context.
-- `KnowledgeContextProvider` calls RAG services and returns bounded, cited knowledge context.
-- `AgentRuntimeAdapter` converts backend run state into LangGraph state and converts graph output back into persistable run results.
-- The `agents` package remains pure orchestration. It must not import FastAPI, SQLAlchemy, database models, or request objects.
+- API routes accept authenticated agent run requests and delegate execution to the Agent domain.
+- `AgentRunService` validates requests, creates durable run records, assembles execution context, invokes a runtime adapter, persists execution events, and returns typed responses.
+- `AgentContextAssembler` coordinates registered context providers, validates and merges their output, and produces a single execution context for the runtime.
+- During Phase 6.3, the Context Assembly layer supports the following providers:
+  - Conversation History Provider
+  - Runtime Metadata Provider
+  - User Information Provider
+  - Agent Configuration Provider
+- The Context Assembly architecture is designed to support additional providers through extensible interfaces.
+- `MemoryContextProvider` is defined as an extension point for supplying memory context to the Context Assembly pipeline. During Phase 6.3, it does **not** perform memory retrieval. Concrete Memory integration is implemented in **Phase 6.7 – Memory Integration**.
+- `KnowledgeContextProvider` is defined as an extension point for supplying knowledge context to the Context Assembly pipeline. During Phase 6.3, it does **not** perform RAG retrieval. Concrete Knowledge (RAG) integration is implemented in **Phase 6.8 – Knowledge Integration**.
+- `AgentRuntimeAdapter` converts backend runtime state into the runtime-specific execution state (for example, LangGraph) and converts execution results back into persistable backend models. Runtime implementations remain pluggable and framework-agnostic.
+- The `agents` package remains a pure orchestration layer. It must not import FastAPI, SQLAlchemy, database models, ORM sessions, HTTP request objects, or any other infrastructure-specific implementation details. Infrastructure concerns are injected through interfaces and dependency injection.
 
 ## Component Diagram
 
