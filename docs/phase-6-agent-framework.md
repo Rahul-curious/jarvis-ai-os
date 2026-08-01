@@ -538,7 +538,7 @@ Long-term:
 Phase 6 should reserve extension points for:
 
 - Multi-agent supervisor/specialist delegation.
-- Tool registry and policy-gated tool execution.
+- Tool registry, with policy-gated tool execution introduced separately after registry contracts are established.
 - Browser automation and computer control agents.
 - Research and news intelligence agents.
 - Voice-triggered agent runs.
@@ -549,291 +549,425 @@ Phase 6 should reserve extension points for:
 
 ## Implementation Milestones
 
-Each milestone should be independently testable and commit-ready.
+Phase 6 is implemented incrementally. Each milestone establishes one architectural capability and must remain independently testable.
 
-### Milestone 1: Agent Domain Persistence Foundation
+Later milestones may depend on contracts introduced by earlier milestones, but they must not prematurely implement functionality assigned to future milestones.
 
-Purpose:
+### Milestone 1: Agent Domain Foundation
 
-Create durable agent run metadata without executing agent logic.
-
-Deliverables:
-
-- SQLAlchemy models for agent definitions, runs, run steps, and run events.
-- Alembic migration for Phase 6 tables.
-- Repository methods for create, read, list, status update, event append, and step append.
-- Pydantic schemas for run create/read/list/event responses.
-
-Files expected to change:
-
-- `backend/app/domains/agents/models.py`
-- `backend/app/domains/agents/schemas.py`
-- `backend/app/domains/agents/repository.py`
-- `backend/app/db/base.py`
-- `backend/alembic/versions/<phase_6_agents>.py`
-- `backend/tests/test_agents_repository.py`
-
-Acceptance criteria:
-
-- Migration creates Phase 6 tables and indexes.
-- Agent runs are scoped by user ID.
-- Repository tests cover create, list, get, status transition, event append, and owner isolation.
-- Existing auth, memory, and RAG tests still pass.
-
-Suggested commit message:
-
-`Add Phase 6 agent run persistence foundation`
-
-### Milestone 2: Agent API Resource Layer
+Status: **Completed**
 
 Purpose:
 
-Expose authenticated agent run resources without real graph execution.
+Establish the persistent domain model and lifecycle foundation required for governed agent execution.
 
 Deliverables:
 
-- `backend/app/api/routes/agents.py`.
-- Router registration under `/api/v1/agents`.
-- `POST /agents/runs`, `GET /agents/runs`, `GET /agents/runs/{run_id}`, and `GET /agents/runs/{run_id}/events`.
-- Service layer that creates a run in `queued` or `requested` status.
-- Audit events for run creation and lookup failures where useful.
-
-Files expected to change:
-
-- `backend/app/api/router.py`
-- `backend/app/api/routes/agents.py`
-- `backend/app/domains/agents/services.py`
-- `backend/app/domains/agents/errors.py`
-- `backend/tests/test_agents_api.py`
-- `backend/tests/test_agents_services.py`
+- Agent definitions.
+- Agent runs.
+- Agent steps.
+- Agent events.
+- Agent artifacts.
+- Agent lifecycle policies.
+- Validation limits.
+- Agent-domain errors.
+- Owner-scoped repositories.
+- Agent services.
+- PostgreSQL persistence.
+- Alembic migration.
+- Domain and repository tests.
 
 Acceptance criteria:
 
-- Unauthenticated requests return 401.
-- Authenticated users can create and list their own runs.
-- Users cannot access another user's runs.
-- API responses match typed schemas.
-- No Memory or RAG behavior changes.
+- Agent resources are persistable and owner-scoped.
+- Lifecycle transitions are explicitly controlled.
+- Repository and service boundaries follow existing JARVIS conventions.
+- No runtime execution is introduced.
+- Existing Phase 0–5 functionality remains unchanged.
 
-Suggested commit message:
+Implemented as:
 
-`Expose authenticated agent run APIs`
+`Phase 6.1 – Agent Domain Foundation`
 
-### Milestone 3: Context Provider Adapters
+Suggested commit:
 
-Purpose
+`feat(agents): add Phase 6.1 agent domain foundation`
 
-Build the Context Assembly foundation for the Agent Framework.
+---
 
-Deliverables
+### Milestone 2: Agent Runtime Abstraction
 
-• AgentContextAssembler
-
-• Context Builder
-
-• Context Models
-
-• Context Validation
-
-• Context Merge Strategy
-
-• Conversation History Provider
-
-• Runtime Metadata Provider
-
-• User Information Provider
-
-• Agent Configuration Provider
-
-• MemoryContextProvider (Extension Interface Only)
-
-• KnowledgeContextProvider (Extension Interface Only)
-
-• Unit Tests
-
-Acceptance Criteria
-
-✓ Context Assembly builds a validated execution context.
-
-✓ Providers can be registered and composed.
-
-✓ MemoryContextProvider exists only as an interface.
-
-✓ KnowledgeContextProvider exists only as an interface.
-
-✓ No Memory retrieval.
-
-✓ No RAG retrieval.
-
-✓ No Memory Engine changes.
-
-✓ No Knowledge Engine changes.
-
-Suggested Commit
-
-feat(context): implement Phase 6.3 Context Assembly
-
-### Milestone 4: LangGraph Runtime Adapter
+Status: **Completed**
 
 Purpose:
 
-Connect backend agent runs to the existing `agents` LangGraph package through a testable adapter.
+Define a framework-agnostic execution contract for future agent runtime implementations.
 
 Deliverables:
 
-- Expanded `AgentRunState` with task, context, events, output, and error fields.
-- Minimal graph nodes for planning and synthesis using deterministic behavior for tests.
-- Backend `AgentRuntimeAdapter`.
-- Runtime tests for successful and failed graph invocation.
-
-Files expected to change:
-
-- `agents/src/jarvis_agents/state.py`
-- `agents/src/jarvis_agents/graph.py`
-- `agents/src/jarvis_agents/nodes.py`
-- `agents/src/jarvis_agents/events.py`
-- `backend/app/domains/agents/runtime.py`
-- `agents/tests/test_graph.py`
-- `backend/tests/test_agents_runtime.py`
+- Runtime interface.
+- Runtime context.
+- Runtime execution model.
+- Runtime result model.
+- Runtime event model.
+- Runtime status model.
+- Runtime lifecycle.
+- Runtime validation.
+- Runtime factory.
+- Runtime dependency injection.
+- Timeout handling.
+- Cancellation handling.
+- Retryable failure handling.
+- Runtime tests.
 
 Acceptance criteria:
 
-- Runtime can execute a minimal graph with no external model dependency.
-- Runtime returns output, events, and status in a typed structure.
-- Runtime errors are captured and do not crash API tests.
-- The `agents` package remains free of FastAPI and SQLAlchemy imports.
+- Runtime contracts remain independent of LangGraph.
+- Runtime implementations are replaceable.
+- Runtime behavior is fully typed.
+- Runtime lifecycle transitions are validated.
+- No planner, executor, LLM, Memory, or RAG integration is introduced.
 
-Suggested commit message:
+Implemented as:
 
-`Add LangGraph runtime adapter for agent runs`
+`Phase 6.2 – Agent Runtime Abstraction`
 
-### Milestone 5: End-to-End Synchronous Agent Execution
+Suggested commit:
+
+`feat(runtime): implement Phase 6.2 Agent Runtime Abstraction`
+
+---
+
+### Milestone 3: Context Assembly
+
+Status: **Completed**
 
 Purpose:
 
-Allow a user to submit a task and receive a completed agent run response using Memory/RAG context.
+Build the framework-agnostic Context Assembly pipeline responsible for constructing validated execution context before runtime execution.
 
 Deliverables:
 
-- `POST /agents/runs` executes the minimal graph synchronously.
-- Run statuses transition from requested to running to succeeded or failed.
-- Run events and final output are persisted.
-- Audit events are recorded for start, success, and failure.
-
-Files expected to change:
-
-- `backend/app/domains/agents/services.py`
-- `backend/app/api/routes/agents.py`
-- `backend/tests/test_agents_api.py`
-- `backend/tests/test_agents_services.py`
+- `AgentContextAssembler`.
+- Context builder.
+- Typed context models.
+- Context metadata.
+- Async context provider interfaces.
+- Provider registry.
+- Conversation History Provider.
+- Runtime Metadata Provider.
+- User Information Provider.
+- Agent Configuration Provider.
+- Deterministic priority-based merge strategy.
+- Context validation.
+- Duplicate-provider detection.
+- Required-section validation.
+- JSON validation.
+- Context size limits.
+- `MemoryContextProvider` extension interface.
+- `KnowledgeContextProvider` extension interface.
+- Unit tests.
 
 Acceptance criteria:
 
-- Valid authenticated request returns `succeeded` with output.
-- Run event list includes context assembly and graph execution events.
-- Failure path persists `failed` status and safe error message.
-- Existing Memory and RAG regression tests still pass unchanged.
+- Context Assembly produces a validated execution context.
+- Providers can be registered and composed.
+- Provider ordering and merging are deterministic.
+- `MemoryContextProvider` exists only as an extension interface.
+- `KnowledgeContextProvider` exists only as an extension interface.
+- No Memory retrieval is implemented.
+- No RAG retrieval is implemented.
+- No agent execution is introduced.
 
-Suggested commit message:
+Implemented as:
 
-`Execute synchronous Phase 6 agent runs`
+`Phase 6.3 – Context Assembly`
 
-### Milestone 6: Cancellation And Event Inspection
+Suggested commit:
+
+`feat(context): implement Phase 6.3 Context Assembly`
+
+---
+
+### Milestone 4: Tool Registry
+
+Status: **Planned**
 
 Purpose:
 
-Prepare the run model for long-running tasks before adding async workers.
+Establish the framework-agnostic registry and contracts required to describe, validate, register, and discover tools that future Planner and Executor milestones may use.
+
+This milestone defines tool capabilities and discovery only. It does not execute tools.
 
 Deliverables:
 
-- `POST /agents/runs/{run_id}/cancel`.
-- Cancellation rules for requested, queued, running, succeeded, failed, and cancelled states.
-- Event listing filters and ordering.
-- Tests for cancellation and event visibility.
-
-Files expected to change:
-
-- `backend/app/api/routes/agents.py`
-- `backend/app/domains/agents/services.py`
-- `backend/app/domains/agents/repository.py`
-- `backend/tests/test_agents_api.py`
-- `backend/tests/test_agents_services.py`
+- Tool definition model.
+- Tool metadata model.
+- Tool capability/category representation where required.
+- Tool input contract representation.
+- Tool output contract representation.
+- Tool interface or protocol.
+- Tool registry.
+- Tool registration.
+- Tool lookup.
+- Tool discovery/listing.
+- Duplicate registration protection.
+- Tool validation.
+- Tool-specific errors.
+- Registry policies and limits where required.
+- Dependency injection integration where required.
+- Unit tests.
 
 Acceptance criteria:
 
-- Cancellable runs transition to `cancelled`.
-- Terminal runs cannot be cancelled.
-- Cancellation is owner-scoped.
-- Cancellation records audit and event entries.
+- Tools have stable, typed contracts.
+- Tools can be explicitly registered.
+- Registered tools can be retrieved and discovered.
+- Invalid definitions are rejected.
+- Duplicate registration is rejected.
+- Registry behavior is deterministic.
+- Registry core remains framework agnostic.
+- No tool execution is implemented.
+- No planner behavior is implemented.
+- No executor behavior is implemented.
+- No LangGraph tool nodes are implemented.
+- No concrete browser, shell, filesystem, connector, or external API tools are introduced.
 
-Suggested commit message:
+Implemented as:
 
-`Add agent run cancellation and event inspection`
+`Phase 6.4 – Tool Registry`
 
-### Milestone 7: Frontend Agent Run Shell
+Suggested commit:
+
+`feat(tools): implement Phase 6.4 Tool Registry`
+
+---
+
+### Milestone 5: Planner
+
+Status: **Planned**
 
 Purpose:
 
-Provide a minimal user surface for agent runs without adding advanced autonomy.
+Introduce the planning layer responsible for transforming an agent task and assembled execution context into a structured execution plan.
+
+The Planner decides what should be done. It does not perform the work itself.
 
 Deliverables:
 
-- Agent run submission page.
-- Run detail page showing status, output, events, memory references, and citations.
-- Loading, empty, and error states.
-- Typed frontend API client methods.
-
-Files expected to change:
-
-- `frontend/src/api/client.ts`
-- `frontend/src/App.tsx`
-- `frontend/src/state/router.ts`
-- `frontend/src/pages/AgentRunsPage.tsx`
-- `frontend/src/pages/AgentRunDetailPage.tsx`
-- `frontend/src/styles.css`
+- Planner interface.
+- Planning request model.
+- Execution plan model.
+- Plan step model.
+- Planner validation.
+- Planner policies and limits.
+- Tool-awareness through Tool Registry contracts.
+- Deterministic planner implementation or test double where required for testing.
+- Planner errors.
+- Unit tests.
 
 Acceptance criteria:
 
-- Frontend builds successfully.
-- Authenticated users can submit a run and view the result.
-- UI clearly labels agent output as a Phase 6 controlled run.
-- No browser automation, voice, or computer-control UI is introduced.
+- Planner accepts a task and validated execution context.
+- Planner produces a typed execution plan.
+- Plan steps are deterministic and validated.
+- Planner may discover available tool contracts through the Tool Registry.
+- Planner does not execute tools.
+- Planner does not directly mutate agent persistence.
+- Planner remains independent from concrete LLM providers.
+- No Executor functionality is implemented.
+- No Memory or RAG integration is introduced.
 
-Suggested commit message:
+Implemented as:
 
-`Add frontend shell for Phase 6 agent runs`
+`Phase 6.5 – Planner`
 
-### Milestone 8: Documentation And Release Readiness
+Suggested commit:
+
+`feat(planner): implement Phase 6.5 Planner`
+
+---
+
+### Milestone 6: Executor
+
+Status: **Planned**
 
 Purpose:
 
-Finalize Phase 6 operational guidance before implementation is considered complete.
+Introduce the execution layer responsible for processing validated execution plans through governed execution contracts.
+
+The Executor performs plan progression but must remain bounded by explicit lifecycle, policy, and tool-execution boundaries.
 
 Deliverables:
 
-- Update backend README with agent API usage.
-- Add Phase 6 test commands and known limitations.
-- Add release notes for the Agent Framework foundation.
-- Verify Docker Compose, backend tests, agents package tests, and frontend build.
-
-Files expected to change:
-
-- `backend/README.md`
-- `agents/README.md`
-- `docs/phase-6-agent-framework.md`
-- Optional release notes file if the repository adopts one.
+- Executor interface.
+- Execution request model.
+- Execution result model.
+- Plan-step execution lifecycle.
+- Execution validation.
+- Failure handling.
+- Cancellation handling.
+- Execution events.
+- Policy boundaries for future tool invocation.
+- Unit tests.
 
 Acceptance criteria:
 
-- Documentation clearly states Phase 6 does not include autonomous tools.
-- All test suites pass.
-- Docker Compose runtime smoke validates auth plus a simple agent run.
-- Implementation is ready for review as the Phase 6 foundation.
+- Executor accepts validated execution plans.
+- Execution progression is explicit and observable.
+- Failures are represented through typed results and events.
+- Cancellation behavior is deterministic.
+- Executor does not bypass Tool Registry contracts.
+- Concrete autonomous tool execution is not introduced unless separately authorized by architecture.
+- No Memory retrieval is implemented.
+- No RAG retrieval is implemented.
+- No API routes or frontend execution flows are introduced.
 
-Suggested commit message:
+Implemented as:
 
-`Document Phase 6 agent framework release readiness`
+`Phase 6.6 – Executor`
 
+Suggested commit:
+
+`feat(executor): implement Phase 6.6 Executor`
+
+---
+
+### Milestone 7: Memory Integration
+
+Status: **Planned**
+
+Purpose:
+
+Connect the existing JARVIS Memory Engine to Context Assembly through the previously reserved `MemoryContextProvider` extension point.
+
+This milestone integrates with the existing Memory Engine. It must not redesign or duplicate Memory Engine behavior.
+
+Deliverables:
+
+- Concrete `MemoryContextProvider`.
+- User-scoped memory retrieval.
+- Bounded memory context.
+- Memory-context metadata and references.
+- Retrieval limits and policies.
+- Integration with `AgentContextAssembler`.
+- Memory integration errors where required.
+- Unit and integration tests.
+
+Acceptance criteria:
+
+- Memory retrieval uses existing Memory service boundaries.
+- Retrieval remains user-scoped.
+- Context size remains bounded.
+- Memory references are preserved in assembled context.
+- Existing Memory behavior is not redesigned.
+- Agent execution does not silently create memories.
+- Existing Phase 4 Memory tests continue passing.
+- No Knowledge/RAG integration is introduced.
+
+Implemented as:
+
+`Phase 6.7 – Memory Integration`
+
+Suggested commit:
+
+`feat(agents): integrate Memory context provider`
+
+---
+
+### Milestone 8: Knowledge (RAG) Integration
+
+Status: **Planned**
+
+Purpose:
+
+Connect the existing JARVIS Knowledge/RAG Engine to Context Assembly through the previously reserved `KnowledgeContextProvider` extension point.
+
+This milestone consumes the existing RAG service layer rather than duplicating retrieval infrastructure.
+
+Deliverables:
+
+- Concrete `KnowledgeContextProvider`.
+- User-scoped knowledge retrieval.
+- Bounded knowledge context.
+- Document and chunk references.
+- Citation preservation.
+- Confidence metadata where available.
+- Integration with `AgentContextAssembler`.
+- Knowledge integration errors where required.
+- Unit and integration tests.
+
+Acceptance criteria:
+
+- Retrieval uses existing RAG service boundaries.
+- Document ownership filters remain enforced.
+- Citations are preserved.
+- Retrieval context remains bounded.
+- Existing RAG ingestion and vector-store behavior is not modified.
+- Existing Phase 5 RAG tests continue passing.
+- No unrelated agent functionality is introduced.
+
+Implemented as:
+
+`Phase 6.8 – Knowledge (RAG) Integration`
+
+Suggested commit:
+
+`feat(agents): integrate Knowledge context provider`
+
+---
+
+### Milestone 9: Agent API And End-to-End Integration
+
+Status: **Planned**
+
+Purpose:
+
+Connect the completed Agent Domain, Runtime, Context Assembly, Tool Registry, Planner, Executor, Memory integration, and Knowledge integration through authenticated API resources.
+
+This milestone exposes the governed agent execution lifecycle to clients.
+
+Deliverables:
+
+- Agent run API routes.
+- Authenticated run creation.
+- Run inspection.
+- Run listing.
+- Cancellation.
+- Event inspection.
+- Service orchestration across completed Phase 6 components.
+- Durable run status transitions.
+- Audit events.
+- End-to-end tests.
+- API documentation updates.
+
+Initial endpoints may include:
+
+- `POST /api/v1/agents/runs`
+- `GET /api/v1/agents/runs`
+- `GET /api/v1/agents/runs/{run_id}`
+- `POST /api/v1/agents/runs/{run_id}/cancel`
+- `GET /api/v1/agents/runs/{run_id}/events`
+
+Acceptance criteria:
+
+- Authenticated users can create and inspect their own runs.
+- User isolation is enforced.
+- Context Assembly is invoked through its service boundary.
+- Planner and Executor are invoked through explicit contracts.
+- Memory and Knowledge context use their completed provider integrations.
+- Run events and final status are persisted.
+- Audit events are recorded.
+- Failure paths return safe typed responses.
+- Existing Phase 0–5 behavior remains unchanged.
+
+Implemented as:
+
+`Phase 6.9 – Agent API And End-to-End Integration`
+
+Suggested commit:
+
+`feat(agents): expose governed agent execution API`
 ## Release Gate Checklist
 
 Before Phase 6 is released:
