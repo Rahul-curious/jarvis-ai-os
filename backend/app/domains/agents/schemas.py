@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -33,6 +33,152 @@ class AgentStepStatus(StrEnum):
     failed = "failed"
     cancelled = "cancelled"
     skipped = "skipped"
+
+
+class ContextLimits(BaseModel):
+    """Boundaries applied while assembling an execution context."""
+
+    model_config = ConfigDict(frozen=True)
+
+    max_sections: int = Field(default=20, ge=1)
+    max_section_bytes: int = Field(default=64_000, ge=1)
+    max_total_bytes: int = Field(default=256_000, ge=1)
+    max_metadata_keys: int = Field(default=100, ge=1)
+    max_metadata_bytes: int = Field(default=64_000, ge=1)
+    max_conversation_messages: int = Field(default=100, ge=1)
+    max_task_length: int = Field(default=20_000, ge=1)
+
+    @model_validator(mode="after")
+    def validate_total_limit(self) -> ContextLimits:
+        if self.max_total_bytes < self.max_section_bytes:
+            raise ValueError("max_total_bytes must be greater than or equal to max_section_bytes")
+        return self
+
+
+class ContextMetadata(BaseModel):
+    """Metadata describing the assembled context payload."""
+
+    model_config = ConfigDict(frozen=True)
+
+    request_id: str | None = Field(default=None, max_length=128)
+    assembled_at: datetime
+    provider_names: tuple[str, ...] = Field(default_factory=tuple)
+    section_count: int = Field(ge=0)
+    total_size_bytes: int = Field(ge=0)
+
+
+class ContextSection(BaseModel):
+    """A named, prioritized contribution from one context provider."""
+
+    model_config = ConfigDict(frozen=True)
+
+    provider: str = Field(min_length=1, max_length=120)
+    priority: int = Field(ge=0, le=10_000)
+    data: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("provider")
+    @classmethod
+    def strip_provider(cls, value: str) -> str:
+        return _strip_required(value)
+
+
+class ConversationMessage(BaseModel):
+    """A bounded conversation item supplied to Context Assembly."""
+
+    model_config = ConfigDict(frozen=True)
+
+    role: Literal["system", "user", "assistant", "tool"]
+    content: str = Field(min_length=1, max_length=100_000)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("content")
+    @classmethod
+    def strip_content(cls, value: str) -> str:
+        return _strip_required(value)
+
+
+class UserInformation(BaseModel):
+    """Safe user attributes that may be exposed to an agent runtime."""
+
+    model_config = ConfigDict(frozen=True)
+
+    user_id: uuid.UUID
+    email: str = Field(min_length=1, max_length=320)
+    full_name: str = Field(min_length=1, max_length=200)
+    is_active: bool = True
+
+    @field_validator("email", "full_name")
+    @classmethod
+    def strip_user_values(cls, value: str) -> str:
+        return _strip_required(value)
+
+
+class AgentConfiguration(BaseModel):
+    """Serializable agent configuration supplied to Context Assembly."""
+
+    model_config = ConfigDict(frozen=True)
+
+    agent_id: uuid.UUID | None = None
+    agent_key: str = Field(min_length=1, max_length=120)
+    agent_type: str = Field(min_length=1, max_length=80)
+    version: str = Field(min_length=1, max_length=32)
+    configuration: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("agent_key", "agent_type", "version")
+    @classmethod
+    def strip_configuration_values(cls, value: str) -> str:
+        return _strip_required(value)
+
+
+class ContextAssemblyRequest(BaseModel):
+    """Framework-neutral input provided to context providers."""
+
+    model_config = ConfigDict(frozen=True)
+
+    run_id: uuid.UUID
+    user_id: uuid.UUID
+    task: str = Field(min_length=1, max_length=20_000)
+    request_id: str | None = Field(default=None, max_length=128)
+    conversation_history: tuple[ConversationMessage, ...] = Field(default_factory=tuple)
+    runtime_metadata: dict[str, Any] = Field(default_factory=dict)
+    user_information: UserInformation
+    agent_configuration: AgentConfiguration
+
+    @field_validator("task")
+    @classmethod
+    def strip_task(cls, value: str) -> str:
+        return _strip_required(value)
+
+    @field_validator("request_id")
+    @classmethod
+    def strip_request_id(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None and value.strip() else None
+
+    @model_validator(mode="after")
+    def validate_user_identity(self) -> ContextAssemblyRequest:
+        if self.user_information.user_id != self.user_id:
+            raise ValueError("user_information.user_id must match user_id")
+        return self
+
+
+class ExecutionContext(BaseModel):
+    """Validated context passed to a future runtime implementation."""
+
+    model_config = ConfigDict(frozen=True)
+
+    run_id: uuid.UUID
+    user_id: uuid.UUID
+    task: str
+    sections: tuple[ContextSection, ...] = Field(default_factory=tuple)
+    data: dict[str, Any] = Field(default_factory=dict)
+    metadata: ContextMetadata
+
+    @property
+    def merged_data(self) -> dict[str, Any]:
+        """Compatibility-friendly name for the merged provider payload."""
+
+        return self.data
 
 
 def _strip_required(value: str) -> str:
@@ -287,4 +433,3 @@ class AgentDefinitionListResponse(BaseModel):
 class AgentEventListResponse(BaseModel):
     items: list[AgentEventRead]
     total: int
-

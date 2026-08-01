@@ -34,6 +34,22 @@ class AgentLifecycleError(AgentValidationError):
     """Raised when an agent run lifecycle transition is invalid."""
 
 
+class AgentContextError(AgentValidationError):
+    """Base error for Context Assembly failures."""
+
+
+class AgentContextConfigurationError(AgentContextError):
+    """Raised when the provider registry cannot satisfy its configuration."""
+
+
+class AgentContextProviderError(AgentContextError):
+    """Raised when a context provider returns invalid or unsafe output."""
+
+
+class AgentContextLimitError(AgentContextError):
+    """Raised when a context request or assembled payload exceeds a limit."""
+
+
 class AgentRuntimeError(AgentError):
     """Base error for runtime failures returned by the runtime boundary."""
 

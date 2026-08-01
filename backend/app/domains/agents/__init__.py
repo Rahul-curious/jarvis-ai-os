@@ -1,5 +1,19 @@
-"""Agent domain models, policies, repositories, services, and runtime contracts."""
+"""Agent domain models, policies, repositories, services, runtime, and context contracts."""
 
+from app.domains.agents.context import (
+    AgentConfigurationProvider,
+    AgentContextAssembler,
+    ContextBuilder,
+    ContextMergeStrategy,
+    ContextProvider,
+    ContextProviderRegistry,
+    ConversationHistoryProvider,
+    KnowledgeContextProvider,
+    MemoryContextProvider,
+    PriorityContextMergeStrategy,
+    RuntimeMetadataProvider,
+    UserInformationProvider,
+)
 from app.domains.agents.runtime import (
     AgentRuntime,
     LifecycleAgentRuntime,
@@ -14,6 +28,18 @@ from app.domains.agents.runtime import (
 )
 
 __all__ = [
+    "AgentConfigurationProvider",
+    "AgentContextAssembler",
+    "ContextBuilder",
+    "ContextMergeStrategy",
+    "ContextProvider",
+    "ContextProviderRegistry",
+    "ConversationHistoryProvider",
+    "KnowledgeContextProvider",
+    "MemoryContextProvider",
+    "PriorityContextMergeStrategy",
+    "RuntimeMetadataProvider",
+    "UserInformationProvider",
     "AgentRuntime",
     "LifecycleAgentRuntime",
     "RuntimeAgentDefinition",
