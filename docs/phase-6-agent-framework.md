@@ -2,7 +2,7 @@
 
 ## Planning Summary
 
-Phase 6 introduces the first governed AI Agent Framework foundation for JARVIS. The goal is to support agent run planning, state, context assembly, execution events, and LangGraph orchestration contracts without destabilizing completed Phase 0-5 work.
+Phase 6 introduces the first governed AI Agent Framework foundation for JARVIS. The goal is to support agent run planning, state, context assembly, execution contracts, and execution events through framework-agnostic boundaries without destabilizing completed Phase 0-5 work.
 
 This is a design and implementation plan only. It does not implement Phase 6 behavior.
 
@@ -26,7 +26,7 @@ Phase 6 should add an agent layer beside existing Memory and RAG services. It sh
 - Provide a production-grade foundation for user-requested agent runs.
 - Persist agent definitions, runs, steps, events, context references, and outputs.
 - Provide extensible context provider interfaces that allow future integration with Memory and RAG through stable service-layer adapters.
-- Use LangGraph for orchestrated state transitions while keeping persistence, authorization, and audit in the backend.
+- Keep orchestration behind framework-agnostic runtime contracts so execution backends such as LangGraph can be integrated through replaceable adapters while persistence, authorization, and audit remain in the backend.
 - Support a synchronous MVP run path with a clean route to future async workers, streaming, and resumable runs.
 - Preserve user isolation, current HttpOnly cookie authentication, auditability, and least-privilege data access.
 - Keep Phase 6 independently testable and safe to release before browser automation, computer control, voice, or autonomous scheduling.
@@ -39,7 +39,7 @@ Phase 6 should design and later implement:
 - Agent domain models for definitions, runs, steps, events, and artifacts.
 - Backend services for validation, authorization, persistence, audit, context assembly, and runtime invocation.
 - Extensible context provider interfaces and the Context Assembly pipeline. Concrete Memory and Knowledge provider integrations are implemented in later phases.
-- A LangGraph runtime adapter that executes a minimal planner/synthesizer graph.
+- A framework-agnostic Planner that produces validated execution plans, with runtime-specific orchestration adapters introduced separately behind established contracts.
 - Explicit lifecycle states and safe error transitions.
 - Structured run events suitable for future streaming.
 - Tests for API routes, services, repositories, context providers, and graph runtime behavior.
@@ -89,20 +89,38 @@ flowchart TB
     AgentRepo --> Postgres["PostgreSQL"]
 
     AgentService --> Audit["Audit Service"]
+
     AgentService --> ContextAssembler["AgentContextAssembler"]
 
     ContextAssembler --> ConversationProvider["ConversationHistoryProvider"]
     ContextAssembler --> RuntimeProvider["RuntimeMetadataProvider"]
     ContextAssembler --> UserProvider["UserInformationProvider"]
     ContextAssembler --> ConfigProvider["AgentConfigurationProvider"]
-    ContextAssembler --> MemoryProvider["MemoryContextProvider (Extension Point)"]
-    ContextAssembler --> KnowledgeProvider["KnowledgeContextProvider (Extension Point)"]
 
-    AgentService --> RuntimeAdapter["AgentRuntimeAdapter"]
+    ContextAssembler --> MemoryProvider["MemoryContextProvider"]
+    ContextAssembler --> KnowledgeProvider["KnowledgeContextProvider"]
 
-    RuntimeAdapter --> LangGraph["jarvis_agents LangGraph"]
-    LangGraph --> Planner["Planner Node"]
-    LangGraph --> Synthesizer["Synthesizer Node"]
+    MemoryProvider -. "Phase 6.7" .-> MemoryServices["Memory Services"]
+    KnowledgeProvider -. "Phase 6.8" .-> RagServices["RAG Services"]
+
+    MemoryServices --> Postgres
+    RagServices --> Postgres
+    RagServices --> Chroma["ChromaDB"]
+
+    AgentService --> Planner["Planner"]
+
+    Planner --> ContextAssembler
+    Planner --> ToolRegistry["ToolRegistry"]
+    Planner --> ExecutionPlan["ExecutionPlan"]
+
+    ExecutionPlan --> Executor["Executor"]
+
+    AgentService --> Executor
+
+    Executor --> Runtime["Agent Runtime Abstraction"]
+
+    Runtime -. "Future runtime adapter" .-> RuntimeAdapter["Runtime Adapter"]
+    RuntimeAdapter -. "Future orchestration backend" .-> LangGraph["LangGraph / Other Runtime Backend"]
 ```
 
 ## Folder Structure
@@ -986,7 +1004,7 @@ Before Phase 6 is released:
 
 Phase 6 establishes the foundation for JARVIS to become an agent-capable platform while remaining safe, modular, and production-ready.
 
-The foundation consists of a governed run model, a durable execution lifecycle, a modular Context Assembly pipeline, and a replaceable LangGraph runtime boundary.
+The foundation consists of a governed run model, a durable execution lifecycle, a modular Context Assembly pipeline, framework-agnostic Planner and Executor contracts, and a replaceable runtime boundary capable of supporting LangGraph or other execution backends.
 
 Context Assembly is intentionally designed around extensible provider interfaces so that future phases can integrate Memory, Knowledge (RAG), tools, and additional context sources without changing the core orchestration architecture.
 
