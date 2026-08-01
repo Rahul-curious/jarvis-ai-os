@@ -50,6 +50,22 @@ class AgentContextLimitError(AgentContextError):
     """Raised when a context request or assembled payload exceeds a limit."""
 
 
+class AgentToolError(AgentValidationError):
+    """Base error for Tool Registry failures."""
+
+
+class AgentToolValidationError(AgentToolError):
+    """Raised when a tool contract or registry query is invalid."""
+
+
+class AgentToolRegistrationError(AgentToolError):
+    """Raised when a tool cannot be registered safely."""
+
+
+class AgentToolLimitError(AgentToolError):
+    """Raised when a tool or registry exceeds a configured limit."""
+
+
 class AgentRuntimeError(AgentError):
     """Base error for runtime failures returned by the runtime boundary."""
 
