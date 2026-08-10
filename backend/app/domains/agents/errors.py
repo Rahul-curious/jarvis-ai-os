@@ -50,6 +50,22 @@ class AgentContextLimitError(AgentContextError):
     """Raised when a context request or assembled payload exceeds a limit."""
 
 
+class AgentMemoryIntegrationError(AgentContextError):
+    """Base error for Memory Engine context integration failures."""
+
+
+class AgentMemoryValidationError(AgentMemoryIntegrationError):
+    """Raised when memory retrieval input or output violates a contract."""
+
+
+class AgentMemoryLimitError(AgentMemoryIntegrationError):
+    """Raised when memory context exceeds an integration safety limit."""
+
+
+class AgentMemoryProviderError(AgentMemoryIntegrationError):
+    """Raised when the injected Memory Engine boundary cannot provide context."""
+
+
 class AgentToolError(AgentValidationError):
     """Base error for Tool Registry failures."""
 

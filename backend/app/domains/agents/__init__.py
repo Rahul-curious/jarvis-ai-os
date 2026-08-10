@@ -9,10 +9,12 @@ from app.domains.agents.context import (
     ContextProviderRegistry,
     ConversationHistoryProvider,
     KnowledgeContextProvider,
-    MemoryContextProvider,
     PriorityContextMergeStrategy,
     RuntimeMetadataProvider,
     UserInformationProvider,
+)
+from app.domains.agents.context import (
+    MemoryContextProvider as MemoryContextProviderExtension,
 )
 from app.domains.agents.executor import (
     DeterministicExecutor,
@@ -28,6 +30,17 @@ from app.domains.agents.executor import (
     ExecutionToolStepMode,
     ExecutionValidator,
     Executor,
+)
+from app.domains.agents.memory import (
+    MemoryContext,
+    MemoryContextItem,
+    MemoryContextLimits,
+    MemoryContextMetadata,
+    MemoryContextProvider,
+    MemoryContextReference,
+    MemoryRetrievalPolicy,
+    MemorySearchPort,
+    MemoryUserIdentity,
 )
 from app.domains.agents.planner import (
     DeterministicPlanner,
@@ -78,7 +91,7 @@ __all__ = [
     "ContextProviderRegistry",
     "ConversationHistoryProvider",
     "KnowledgeContextProvider",
-    "MemoryContextProvider",
+    "MemoryContextProviderExtension",
     "PriorityContextMergeStrategy",
     "RuntimeMetadataProvider",
     "UserInformationProvider",
@@ -95,6 +108,15 @@ __all__ = [
     "ExecutionToolStepMode",
     "ExecutionValidator",
     "Executor",
+    "MemoryContext",
+    "MemoryContextItem",
+    "MemoryContextLimits",
+    "MemoryContextMetadata",
+    "MemoryContextProvider",
+    "MemoryContextReference",
+    "MemoryRetrievalPolicy",
+    "MemorySearchPort",
+    "MemoryUserIdentity",
     "DeterministicPlanner",
     "ExecutionPlan",
     "PlanMetadata",

@@ -140,6 +140,7 @@ class ContextAssemblyRequest(BaseModel):
     user_id: uuid.UUID
     task: str = Field(min_length=1, max_length=20_000)
     request_id: str | None = Field(default=None, max_length=128)
+    memory_query: str | None = Field(default=None, max_length=200)
     conversation_history: tuple[ConversationMessage, ...] = Field(default_factory=tuple)
     runtime_metadata: dict[str, Any] = Field(default_factory=dict)
     user_information: UserInformation
@@ -153,6 +154,11 @@ class ContextAssemblyRequest(BaseModel):
     @field_validator("request_id")
     @classmethod
     def strip_request_id(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None and value.strip() else None
+
+    @field_validator("memory_query")
+    @classmethod
+    def strip_memory_query(cls, value: str | None) -> str | None:
         return value.strip() if value is not None and value.strip() else None
 
     @model_validator(mode="after")

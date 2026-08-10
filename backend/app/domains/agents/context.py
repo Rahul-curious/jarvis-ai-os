@@ -240,6 +240,7 @@ class ContextBuilder:
         self._user_id: uuid.UUID | None = None
         self._task: str | None = None
         self._request_id: str | None = None
+        self._memory_query: str | None = None
         self._conversation_history: list[ConversationMessage] = []
         self._runtime_metadata: dict[str, Any] = {}
         self._user_information: UserInformation | None = None
@@ -259,6 +260,10 @@ class ContextBuilder:
 
     def with_request_id(self, request_id: str | None) -> ContextBuilder:
         self._request_id = request_id
+        return self
+
+    def with_memory_query(self, memory_query: str | None) -> ContextBuilder:
+        self._memory_query = memory_query
         return self
 
     def with_conversation_history(
@@ -295,6 +300,7 @@ class ContextBuilder:
                 user_id=self._user_id,
                 task=self._task,
                 request_id=self._request_id,
+                memory_query=self._memory_query,
                 conversation_history=tuple(self._conversation_history),
                 runtime_metadata=self._runtime_metadata,
                 user_information=self._user_information,
@@ -379,9 +385,7 @@ class AgentContextAssembler:
             raise AgentContextLimitError("Assembled context exceeds the configured size limit")
         context = context.model_copy(
             update={
-                "metadata": context.metadata.model_copy(
-                    update={"total_size_bytes": merged_size}
-                )
+                "metadata": context.metadata.model_copy(update={"total_size_bytes": merged_size})
             }
         )
         self._validate_merged_context(context, request, sections)
