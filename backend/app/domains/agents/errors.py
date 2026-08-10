@@ -78,6 +78,43 @@ class AgentPlannerLimitError(AgentPlannerError):
     """Raised when a planning request or plan exceeds a configured limit."""
 
 
+class AgentExecutorError(AgentValidationError):
+    """Base error for Executor contract and coordination failures."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "executor_error",
+        retryable: bool = False,
+    ) -> None:
+        super().__init__(message)
+        self.message = message
+        self.code = code
+        self.retryable = retryable
+
+
+class AgentExecutorValidationError(AgentExecutorError):
+    """Raised when an execution request or plan is invalid."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, code="executor_validation")
+
+
+class AgentExecutorLimitError(AgentExecutorError):
+    """Raised when an execution request exceeds a safety limit."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, code="executor_limit")
+
+
+class AgentExecutorPolicyError(AgentExecutorError):
+    """Raised when an execution plan violates Executor policy."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, code="executor_policy")
+
+
 class AgentRuntimeError(AgentError):
     """Base error for runtime failures returned by the runtime boundary."""
 
