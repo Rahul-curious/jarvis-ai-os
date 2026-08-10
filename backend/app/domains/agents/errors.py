@@ -66,6 +66,18 @@ class AgentToolLimitError(AgentToolError):
     """Raised when a tool or registry exceeds a configured limit."""
 
 
+class AgentPlannerError(AgentValidationError):
+    """Base error for planner contract and validation failures."""
+
+
+class AgentPlannerValidationError(AgentPlannerError):
+    """Raised when planning input, output, or tool references are invalid."""
+
+
+class AgentPlannerLimitError(AgentPlannerError):
+    """Raised when a planning request or plan exceeds a configured limit."""
+
+
 class AgentRuntimeError(AgentError):
     """Base error for runtime failures returned by the runtime boundary."""
 
