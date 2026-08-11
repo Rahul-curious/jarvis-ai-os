@@ -66,6 +66,22 @@ class AgentMemoryProviderError(AgentMemoryIntegrationError):
     """Raised when the injected Memory Engine boundary cannot provide context."""
 
 
+class AgentKnowledgeIntegrationError(AgentContextError):
+    """Base error for Knowledge/RAG context integration failures."""
+
+
+class AgentKnowledgeValidationError(AgentKnowledgeIntegrationError):
+    """Raised when Knowledge retrieval input or output violates a contract."""
+
+
+class AgentKnowledgeLimitError(AgentKnowledgeIntegrationError):
+    """Raised when Knowledge context exceeds an integration safety limit."""
+
+
+class AgentKnowledgeProviderError(AgentKnowledgeIntegrationError):
+    """Raised when the injected Knowledge/RAG boundary cannot provide context."""
+
+
 class AgentToolError(AgentValidationError):
     """Base error for Tool Registry failures."""
 

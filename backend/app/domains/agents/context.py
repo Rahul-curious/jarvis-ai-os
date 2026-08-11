@@ -241,6 +241,7 @@ class ContextBuilder:
         self._task: str | None = None
         self._request_id: str | None = None
         self._memory_query: str | None = None
+        self._knowledge_query: str | None = None
         self._conversation_history: list[ConversationMessage] = []
         self._runtime_metadata: dict[str, Any] = {}
         self._user_information: UserInformation | None = None
@@ -264,6 +265,10 @@ class ContextBuilder:
 
     def with_memory_query(self, memory_query: str | None) -> ContextBuilder:
         self._memory_query = memory_query
+        return self
+
+    def with_knowledge_query(self, knowledge_query: str | None) -> ContextBuilder:
+        self._knowledge_query = knowledge_query
         return self
 
     def with_conversation_history(
@@ -301,6 +306,7 @@ class ContextBuilder:
                 task=self._task,
                 request_id=self._request_id,
                 memory_query=self._memory_query,
+                knowledge_query=self._knowledge_query,
                 conversation_history=tuple(self._conversation_history),
                 runtime_metadata=self._runtime_metadata,
                 user_information=self._user_information,

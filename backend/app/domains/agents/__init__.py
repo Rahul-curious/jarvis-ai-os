@@ -8,10 +8,12 @@ from app.domains.agents.context import (
     ContextProvider,
     ContextProviderRegistry,
     ConversationHistoryProvider,
-    KnowledgeContextProvider,
     PriorityContextMergeStrategy,
     RuntimeMetadataProvider,
     UserInformationProvider,
+)
+from app.domains.agents.context import (
+    KnowledgeContextProvider as KnowledgeContextProviderExtension,
 )
 from app.domains.agents.context import (
     MemoryContextProvider as MemoryContextProviderExtension,
@@ -30,6 +32,19 @@ from app.domains.agents.executor import (
     ExecutionToolStepMode,
     ExecutionValidator,
     Executor,
+)
+from app.domains.agents.knowledge import (
+    KnowledgeChunkReference,
+    KnowledgeCitation,
+    KnowledgeContext,
+    KnowledgeContextItem,
+    KnowledgeContextLimits,
+    KnowledgeContextMetadata,
+    KnowledgeContextProvider,
+    KnowledgeDocumentReference,
+    KnowledgeRetrievalPolicy,
+    KnowledgeUserIdentity,
+    RagQueryPort,
 )
 from app.domains.agents.memory import (
     MemoryContext,
@@ -91,6 +106,7 @@ __all__ = [
     "ContextProviderRegistry",
     "ConversationHistoryProvider",
     "KnowledgeContextProvider",
+    "KnowledgeContextProviderExtension",
     "MemoryContextProviderExtension",
     "PriorityContextMergeStrategy",
     "RuntimeMetadataProvider",
@@ -108,6 +124,16 @@ __all__ = [
     "ExecutionToolStepMode",
     "ExecutionValidator",
     "Executor",
+    "KnowledgeChunkReference",
+    "KnowledgeCitation",
+    "KnowledgeContext",
+    "KnowledgeContextItem",
+    "KnowledgeContextLimits",
+    "KnowledgeContextMetadata",
+    "KnowledgeDocumentReference",
+    "KnowledgeRetrievalPolicy",
+    "KnowledgeUserIdentity",
+    "RagQueryPort",
     "MemoryContext",
     "MemoryContextItem",
     "MemoryContextLimits",
