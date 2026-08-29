@@ -8,19 +8,23 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
+from types import MappingProxyType
 from typing import Any, Protocol, runtime_checkable
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.integrations.errors import (
+    CredentialLifecycleError,
     IntegrationCapabilityError,
     IntegrationConfigurationError,
     IntegrationCredentialError,
     IntegrationPermissionError,
     IntegrationProviderUnavailableError,
     IntegrationValidationError,
+    OAuthStateError,
 )
 
 _IDENTIFIER_PATTERN = re.compile(r"^[a-z][a-z0-9_.-]{1,119}$")
@@ -67,6 +71,19 @@ def _required_text(value: str, field_name: str) -> str:
     return normalized
 
 
+def _aware_timestamp(value: datetime | None, field_name: str) -> datetime | None:
+    if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+        raise ValueError(f"{field_name} must include timezone information")
+    return value
+
+
+def _required_aware_timestamp(value: datetime, field_name: str) -> datetime:
+    normalized = _aware_timestamp(value, field_name)
+    if normalized is None:
+        raise ValueError(f"{field_name} must not be null")
+    return normalized
+
+
 def _json_mapping(value: dict[str, Any], field_name: str) -> dict[str, Any]:
     try:
         json.dumps(value, allow_nan=False, separators=(",", ":"), sort_keys=True)
@@ -107,6 +124,40 @@ class CredentialType(StrEnum):
     api_key = "api_key"
     service_account = "service_account"
     device = "device"
+
+
+class CredentialStatus(StrEnum):
+    """Explicit lifecycle states for an opaque credential reference."""
+
+    pending = "pending"
+    active = "active"
+    expired = "expired"
+    revoked = "revoked"
+    disabled = "disabled"
+    error = "error"
+
+
+_CREDENTIAL_STATUS_TRANSITIONS = MappingProxyType(
+    {
+        CredentialStatus.pending: frozenset(
+            {CredentialStatus.active, CredentialStatus.disabled, CredentialStatus.error}
+        ),
+        CredentialStatus.active: frozenset(
+            {
+                CredentialStatus.expired,
+                CredentialStatus.revoked,
+                CredentialStatus.disabled,
+                CredentialStatus.error,
+            }
+        ),
+        CredentialStatus.expired: frozenset(
+            {CredentialStatus.revoked, CredentialStatus.disabled, CredentialStatus.error}
+        ),
+        CredentialStatus.revoked: frozenset(),
+        CredentialStatus.disabled: frozenset({CredentialStatus.active, CredentialStatus.error}),
+        CredentialStatus.error: frozenset({CredentialStatus.pending, CredentialStatus.disabled}),
+    }
+)
 
 
 class PermissionRisk(StrEnum):
@@ -184,6 +235,26 @@ class PermissionScope(BaseModel):
         return _required_text(value, "permission description")
 
 
+class CredentialOwnership(BaseModel):
+    """Explicit ownership context for a credential reference."""
+
+    model_config = ConfigDict(frozen=True)
+
+    user_id: str | None = Field(default=None, min_length=1, max_length=128)
+    workspace_id: str | None = Field(default=None, min_length=1, max_length=128)
+
+    @field_validator("user_id", "workspace_id")
+    @classmethod
+    def normalize_identity(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None and value.strip() else None
+
+    @model_validator(mode="after")
+    def require_owner_context(self) -> CredentialOwnership:
+        if self.user_id is None and self.workspace_id is None:
+            raise ValueError("credential ownership must include a user_id or workspace_id")
+        return self
+
+
 class IntegrationMetadata(BaseModel):
     """Complete provider discovery metadata with deterministic collection order."""
 
@@ -247,6 +318,9 @@ class CredentialReference(BaseModel):
     provider_id: str = Field(min_length=2, max_length=120)
     reference_id: str = Field(min_length=1, max_length=256)
     credential_type: CredentialType
+    status: CredentialStatus = CredentialStatus.active
+    ownership: CredentialOwnership | None = None
+    granted_scopes: tuple[str, ...] = Field(default_factory=tuple)
     metadata: dict[str, str | int | bool | None] = Field(default_factory=dict)
     expires_at: datetime | None = None
 
@@ -275,6 +349,148 @@ class CredentialReference(BaseModel):
                     f"credential metadata must not contain secret field: {key}"
                 )
         return dict(sorted(value.items()))
+
+    @field_validator("granted_scopes")
+    @classmethod
+    def normalize_granted_scopes(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return _canonical_strings(value, "granted_scopes")
+
+    @field_validator("expires_at")
+    @classmethod
+    def validate_expiration(cls, value: datetime | None) -> datetime | None:
+        return _aware_timestamp(value, "credential expires_at")
+
+    @model_validator(mode="after")
+    def validate_lifecycle_metadata(self) -> CredentialReference:
+        if self.status == CredentialStatus.expired and self.expires_at is None:
+            raise IntegrationCredentialError("expired credentials must include expiration metadata")
+        return self
+
+
+class CredentialResolution(BaseModel):
+    """Non-secret result metadata returned by a future credential resolver."""
+
+    model_config = ConfigDict(frozen=True)
+
+    reference: CredentialReference
+    resolved_at: datetime
+    status: CredentialStatus
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("resolved_at")
+    @classmethod
+    def validate_resolved_at(cls, value: datetime) -> datetime:
+        return _required_aware_timestamp(value, "credential resolved_at")
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_resolution_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return _json_mapping(value, "credential resolution metadata")
+
+    @model_validator(mode="after")
+    def match_reference_status(self) -> CredentialResolution:
+        if self.status != self.reference.status:
+            raise IntegrationCredentialError(
+                "credential resolution status must match the reference status"
+            )
+        return self
+
+
+class CredentialRevocationStatus(StrEnum):
+    """Result states for a future provider-neutral revocation operation."""
+
+    accepted = "accepted"
+    revoked = "revoked"
+    failed = "failed"
+    unsupported = "unsupported"
+
+
+class CredentialRevocationRequest(BaseModel):
+    """Explicitly scoped revocation request without secret material."""
+
+    model_config = ConfigDict(frozen=True)
+
+    request_id: str = Field(min_length=1, max_length=128)
+    correlation_id: str | None = Field(default=None, max_length=128)
+    user_id: str = Field(min_length=1, max_length=128)
+    workspace_id: str | None = Field(default=None, max_length=128)
+    credential: CredentialReference
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("request_id", "correlation_id", "user_id", "workspace_id")
+    @classmethod
+    def normalize_identity(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None and value.strip() else None
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_request_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return _json_mapping(value, "credential revocation metadata")
+
+    @model_validator(mode="after")
+    def validate_ownership(self) -> CredentialRevocationRequest:
+        _validate_ownership_context(
+            ownership=self.credential.ownership,
+            user_id=self.user_id,
+            workspace_id=self.workspace_id,
+        )
+        return self
+
+
+class CredentialRevocationResult(BaseModel):
+    """Structured revocation result that contains no credential secret."""
+
+    model_config = ConfigDict(frozen=True)
+
+    request_id: str = Field(min_length=1, max_length=128)
+    correlation_id: str | None = Field(default=None, max_length=128)
+    provider_id: str = Field(min_length=2, max_length=120)
+    reference_id: str = Field(min_length=1, max_length=256)
+    status: CredentialRevocationStatus
+    revoked_at: datetime | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    error: IntegrationErrorInfo | None = None
+
+    @field_validator("revoked_at")
+    @classmethod
+    def validate_revoked_at(cls, value: datetime | None) -> datetime | None:
+        return _aware_timestamp(value, "credential revoked_at")
+
+    @field_validator("request_id", "correlation_id")
+    @classmethod
+    def normalize_identity(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None and value.strip() else None
+
+    @field_validator("provider_id")
+    @classmethod
+    def validate_provider_id(cls, value: str) -> str:
+        return _required_identifier(value, "revocation provider_id")
+
+    @field_validator("reference_id")
+    @classmethod
+    def validate_reference_id(cls, value: str) -> str:
+        return _reference_identifier(value, "revocation reference_id")
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_result_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return _json_mapping(value, "credential revocation result metadata")
+
+    @model_validator(mode="after")
+    def validate_result_state(self) -> CredentialRevocationResult:
+        success_states = {
+            CredentialRevocationStatus.accepted,
+            CredentialRevocationStatus.revoked,
+        }
+        failure_states = {
+            CredentialRevocationStatus.failed,
+            CredentialRevocationStatus.unsupported,
+        }
+        if self.status in success_states and self.error is not None:
+            raise IntegrationValidationError("successful revocation must not contain an error")
+        if self.status in failure_states and self.error is None:
+            raise IntegrationValidationError("failed revocation must contain error information")
+        return self
 
 
 class IntegrationRequest(BaseModel):
@@ -407,6 +623,188 @@ class IntegrationResponse(BaseModel):
         return self
 
 
+class ScopeComparison(BaseModel):
+    """Deterministic comparison between requested and granted permissions."""
+
+    model_config = ConfigDict(frozen=True)
+
+    requested: tuple[str, ...]
+    granted: tuple[str, ...]
+    missing: tuple[str, ...]
+    unexpected: tuple[str, ...]
+
+    @property
+    def is_satisfied(self) -> bool:
+        return not self.missing and not self.unexpected
+
+
+class OAuthAuthorizationState(BaseModel):
+    """Short-lived state used to bind a future OAuth callback to its request."""
+
+    model_config = ConfigDict(frozen=True)
+
+    state_id: str = Field(min_length=1, max_length=256)
+    provider_id: str = Field(min_length=2, max_length=120)
+    request_id: str = Field(min_length=1, max_length=128)
+    correlation_id: str | None = Field(default=None, max_length=128)
+    user_id: str = Field(min_length=1, max_length=128)
+    workspace_id: str | None = Field(default=None, max_length=128)
+    created_at: datetime
+    expires_at: datetime
+
+    @field_validator("created_at", "expires_at")
+    @classmethod
+    def validate_timestamps(cls, value: datetime) -> datetime:
+        return _required_aware_timestamp(value, "OAuth state timestamp")
+
+    @field_validator("state_id")
+    @classmethod
+    def validate_state_id(cls, value: str) -> str:
+        return _reference_identifier(value, "state_id")
+
+    @field_validator("provider_id")
+    @classmethod
+    def validate_provider_id(cls, value: str) -> str:
+        return _required_identifier(value, "OAuth state provider_id")
+
+    @field_validator("request_id", "correlation_id", "user_id", "workspace_id")
+    @classmethod
+    def normalize_identity(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None and value.strip() else None
+
+    @model_validator(mode="after")
+    def validate_expiration(self) -> OAuthAuthorizationState:
+        if self.expires_at <= self.created_at:
+            raise OAuthStateError("OAuth state expires_at must be after created_at")
+        if (self.expires_at - self.created_at).total_seconds() > 3600:
+            raise OAuthStateError("OAuth state lifetime must not exceed one hour")
+        return self
+
+
+class OAuthAuthorizationRequest(BaseModel):
+    """Provider-neutral delegated authorization request metadata."""
+
+    model_config = ConfigDict(frozen=True)
+
+    request_id: str = Field(min_length=1, max_length=128)
+    correlation_id: str | None = Field(default=None, max_length=128)
+    provider_id: str = Field(min_length=2, max_length=120)
+    client_reference: str = Field(min_length=1, max_length=256)
+    redirect_uri: str = Field(min_length=1, max_length=2048)
+    requested_scopes: tuple[str, ...] = Field(min_length=1)
+    user_id: str = Field(min_length=1, max_length=128)
+    workspace_id: str | None = Field(default=None, max_length=128)
+    state: OAuthAuthorizationState
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("request_id", "correlation_id", "user_id", "workspace_id")
+    @classmethod
+    def normalize_identity(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None and value.strip() else None
+
+    @field_validator("provider_id")
+    @classmethod
+    def validate_provider_id(cls, value: str) -> str:
+        return _required_identifier(value, "OAuth request provider_id")
+
+    @field_validator("client_reference")
+    @classmethod
+    def validate_client_reference(cls, value: str) -> str:
+        return _reference_identifier(value, "client_reference")
+
+    @field_validator("redirect_uri")
+    @classmethod
+    def validate_redirect_uri(cls, value: str) -> str:
+        normalized = value.strip()
+        parsed = urlsplit(normalized)
+        if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+            raise ValueError("redirect_uri must be an absolute HTTP(S) URI")
+        return normalized
+
+    @field_validator("requested_scopes")
+    @classmethod
+    def normalize_requested_scopes(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return _canonical_strings(value, "requested_scopes")
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_request_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return _json_mapping(value, "OAuth request metadata")
+
+    @model_validator(mode="after")
+    def validate_state_binding(self) -> OAuthAuthorizationRequest:
+        state = self.state
+        if (
+            state.provider_id != self.provider_id
+            or state.request_id != self.request_id
+            or state.correlation_id != self.correlation_id
+        ):
+            raise OAuthStateError("OAuth state does not match the authorization request")
+        if state.user_id != self.user_id or state.workspace_id != self.workspace_id:
+            raise OAuthStateError("OAuth state ownership does not match the authorization request")
+        return self
+
+
+class OAuthTokenType(StrEnum):
+    """Provider-neutral token type metadata."""
+
+    bearer = "bearer"
+
+
+class OAuthTokenResult(BaseModel):
+    """Token lifecycle metadata without access or refresh token values."""
+
+    model_config = ConfigDict(frozen=True)
+
+    provider_id: str = Field(min_length=2, max_length=120)
+    credential: CredentialReference
+    token_type: OAuthTokenType = OAuthTokenType.bearer
+    expires_at: datetime | None = None
+    granted_scopes: tuple[str, ...] = Field(default_factory=tuple)
+    refresh_available: bool = False
+    refresh_expires_at: datetime | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("expires_at", "refresh_expires_at")
+    @classmethod
+    def validate_expiration(cls, value: datetime | None) -> datetime | None:
+        return _aware_timestamp(value, "token expiration")
+
+    @field_validator("provider_id")
+    @classmethod
+    def validate_provider_id(cls, value: str) -> str:
+        return _required_identifier(value, "token result provider_id")
+
+    @field_validator("granted_scopes")
+    @classmethod
+    def normalize_granted_scopes(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        return _canonical_strings(value, "granted_scopes")
+
+    @field_validator("metadata")
+    @classmethod
+    def validate_token_metadata(cls, value: dict[str, Any]) -> dict[str, Any]:
+        return _json_mapping(value, "token result metadata")
+
+    @model_validator(mode="after")
+    def validate_token_reference(self) -> OAuthTokenResult:
+        if self.credential.provider_id != self.provider_id:
+            raise IntegrationCredentialError(
+                "token result credential provider does not match provider_id"
+            )
+        if self.credential.status in {
+            CredentialStatus.revoked,
+            CredentialStatus.disabled,
+            CredentialStatus.error,
+        }:
+            raise CredentialLifecycleError(
+                f"token result cannot use credential status {self.credential.status.value}"
+            )
+        if self.refresh_available and self.refresh_expires_at is not None and self.expires_at:
+            if self.refresh_expires_at <= self.expires_at:
+                raise ValueError("refresh token expiration must be after access expiration")
+        return self
+
+
 @runtime_checkable
 class IntegrationProvider(Protocol):
     """Async provider boundary implemented by future external integrations."""
@@ -420,6 +818,22 @@ class IntegrationProvider(Protocol):
 
     async def execute(self, request: IntegrationRequest) -> IntegrationResponse:
         """Execute one validated operation in a provider implementation."""
+
+
+@runtime_checkable
+class CredentialResolver(Protocol):
+    """Async boundary for resolving opaque references without exposing secrets."""
+
+    async def resolve(self, reference: CredentialReference) -> CredentialResolution:
+        """Resolve reference metadata through a future vault implementation."""
+
+
+@runtime_checkable
+class CredentialRevoker(Protocol):
+    """Async boundary for future provider or vault credential revocation."""
+
+    async def revoke(self, request: CredentialRevocationRequest) -> CredentialRevocationResult:
+        """Request revocation without performing it in the contract layer."""
 
 
 def validate_provider_request(
@@ -456,3 +870,92 @@ def validate_provider_request(
         raise IntegrationPermissionError(
             f"request must explicitly declare required scopes: {', '.join(missing_scopes)}"
         )
+    _validate_ownership_context(
+        ownership=request.credential.ownership if request.credential is not None else None,
+        user_id=request.user_id,
+        workspace_id=request.workspace_id,
+    )
+
+
+def compare_scopes(
+    requested: tuple[str, ...] | list[str],
+    granted: tuple[str, ...] | list[str],
+) -> ScopeComparison:
+    """Compare scopes without granting or expanding consent implicitly."""
+
+    requested_scopes = _canonical_strings(tuple(requested), "requested scopes")
+    granted_scopes = _canonical_strings(tuple(granted), "granted scopes")
+    requested_set = set(requested_scopes)
+    granted_set = set(granted_scopes)
+    return ScopeComparison(
+        requested=requested_scopes,
+        granted=granted_scopes,
+        missing=tuple(sorted(requested_set - granted_set)),
+        unexpected=tuple(sorted(granted_set - requested_set)),
+    )
+
+
+def validate_credential_transition(
+    current: CredentialStatus,
+    target: CredentialStatus,
+) -> None:
+    """Validate an explicit lifecycle transition without mutating the reference."""
+
+    current_status = CredentialStatus(current)
+    target_status = CredentialStatus(target)
+    if current_status == target_status:
+        return
+    if target_status not in _CREDENTIAL_STATUS_TRANSITIONS[current_status]:
+        raise CredentialLifecycleError(
+            f"credential transition {current_status.value}->{target_status.value} is not allowed"
+        )
+
+
+def ensure_credential_usable(
+    reference: CredentialReference,
+    *,
+    now: datetime | None = None,
+) -> None:
+    """Reject every non-active or expired reference without changing its state."""
+
+    if reference.status != CredentialStatus.active:
+        raise CredentialLifecycleError(
+            f"credential reference is {reference.status.value} and cannot be used"
+        )
+    current_time = now or datetime.now(UTC)
+    if current_time.tzinfo is None or current_time.utcoffset() is None:
+        raise CredentialLifecycleError(
+            "credential validation time must include timezone information"
+        )
+    if reference.expires_at is not None and reference.expires_at <= current_time:
+        raise CredentialLifecycleError("credential reference is expired")
+
+
+def validate_oauth_state(
+    state: OAuthAuthorizationState,
+    *,
+    now: datetime | None = None,
+) -> None:
+    """Validate that short-lived OAuth state is still usable."""
+
+    current_time = now or datetime.now(UTC)
+    if current_time.tzinfo is None or current_time.utcoffset() is None:
+        raise OAuthStateError("OAuth validation time must include timezone information")
+    if state.created_at > current_time:
+        raise OAuthStateError("OAuth authorization state was created in the future")
+    if state.expires_at <= current_time:
+        raise OAuthStateError("OAuth authorization state has expired")
+
+
+def _validate_ownership_context(
+    *,
+    ownership: CredentialOwnership | None,
+    user_id: str,
+    workspace_id: str | None,
+) -> None:
+    if ownership is None:
+        return
+    if ownership.user_id is not None and ownership.user_id != user_id:
+        raise IntegrationCredentialError("credential ownership does not match request user")
+    if ownership.workspace_id is not None and ownership.workspace_id != workspace_id:
+        raise IntegrationCredentialError("credential ownership does not match request workspace")

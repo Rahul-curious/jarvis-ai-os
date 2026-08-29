@@ -25,5 +25,13 @@ class IntegrationCredentialError(IntegrationValidationError):
     """Raised when a credential reference violates the secret-handling contract."""
 
 
+class CredentialLifecycleError(IntegrationError):
+    """Raised when a credential is not usable in its current lifecycle state."""
+
+
+class OAuthStateError(IntegrationValidationError):
+    """Raised when an OAuth authorization state is expired or inconsistent."""
+
+
 class IntegrationProviderUnavailableError(IntegrationError):
     """Raised when a provider cannot accept operations in its current state."""
