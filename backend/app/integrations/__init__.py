@@ -1,1 +1,51 @@
 """External service integration boundaries."""
+
+from app.integrations.contracts import (
+    CredentialReference,
+    CredentialType,
+    IntegrationCapability,
+    IntegrationErrorInfo,
+    IntegrationMetadata,
+    IntegrationProvider,
+    IntegrationRequest,
+    IntegrationResponse,
+    IntegrationResponseStatus,
+    IntegrationStatus,
+    PermissionRisk,
+    PermissionScope,
+    ProviderIdentity,
+    validate_provider_request,
+)
+from app.integrations.errors import (
+    IntegrationCapabilityError,
+    IntegrationConfigurationError,
+    IntegrationCredentialError,
+    IntegrationError,
+    IntegrationPermissionError,
+    IntegrationProviderUnavailableError,
+    IntegrationValidationError,
+)
+
+__all__ = [
+    "CredentialReference",
+    "CredentialType",
+    "IntegrationCapabilityError",
+    "IntegrationCapability",
+    "IntegrationConfigurationError",
+    "IntegrationCredentialError",
+    "IntegrationError",
+    "IntegrationErrorInfo",
+    "IntegrationMetadata",
+    "IntegrationPermissionError",
+    "IntegrationProvider",
+    "IntegrationProviderUnavailableError",
+    "IntegrationRequest",
+    "IntegrationResponse",
+    "IntegrationResponseStatus",
+    "IntegrationStatus",
+    "IntegrationValidationError",
+    "PermissionRisk",
+    "PermissionScope",
+    "ProviderIdentity",
+    "validate_provider_request",
+]
