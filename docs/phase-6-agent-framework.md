@@ -814,7 +814,11 @@ Purpose:
 
 Introduce the execution layer responsible for processing validated execution plans through governed execution contracts.
 
-The Executor performs plan progression but must remain bounded by explicit lifecycle, policy, and tool-execution boundaries.
+The Executor performs execution orchestration and plan progression through explicit lifecycle contracts while remaining bounded by validation, policy, and tool-execution boundaries.
+
+The Executor coordinates execution.
+
+It does not perform concrete tool execution.
 
 Deliverables:
 
