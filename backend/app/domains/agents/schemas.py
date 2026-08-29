@@ -246,15 +246,33 @@ class AgentDefinitionUpdateRequest(BaseModel):
 
 
 class AgentRunCreateRequest(BaseModel):
+    request_id: str | None = Field(default=None, max_length=128)
     agent_type: str = Field(min_length=1, max_length=80)
     task: str = Field(min_length=1, max_length=20000)
     agent_definition_id: uuid.UUID | None = None
+    conversation_history: tuple[ConversationMessage, ...] = Field(default_factory=tuple)
+    memory_query: str | None = Field(default=None, max_length=200)
+    knowledge_query: str | None = Field(default=None, max_length=2000)
+    requested_tool_ids: tuple[str, ...] = Field(default_factory=tuple)
     input_metadata: dict[str, Any] = Field(default_factory=dict)
 
     @field_validator("agent_type", "task")
     @classmethod
     def strip_required_strings(cls, value: str) -> str:
         return _strip_required(value)
+
+    @field_validator("request_id", "memory_query", "knowledge_query")
+    @classmethod
+    def strip_optional_strings(cls, value: str | None) -> str | None:
+        return value.strip() if value is not None and value.strip() else None
+
+    @field_validator("requested_tool_ids")
+    @classmethod
+    def normalize_requested_tool_ids(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        normalized = tuple(_strip_required(tool_id) for tool_id in value)
+        if len(normalized) != len(set(normalized)):
+            raise ValueError("requested_tool_ids must not contain duplicates")
+        return normalized
 
 
 class AgentRunStatusUpdateRequest(BaseModel):

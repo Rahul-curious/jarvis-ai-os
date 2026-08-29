@@ -5,7 +5,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import Settings, get_settings
 from app.db.session import get_db_session
+from app.domains.agents.executor import DeterministicExecutor, Executor
 from app.domains.agents.factory import AgentRuntimeFactory
+from app.domains.agents.planner import DeterministicPlanner, Planner
 from app.domains.agents.runtime import AgentRuntime
 from app.domains.documents.embeddings import (
     EmbeddingProvider,
@@ -63,4 +65,14 @@ def get_agent_runtime(settings: Settings = SETTINGS_DEP) -> AgentRuntime:
     return AgentRuntimeFactory.from_settings(settings)
 
 
+def get_agent_planner() -> Planner:
+    return DeterministicPlanner()
+
+
+def get_agent_executor() -> Executor:
+    return DeterministicExecutor()
+
+
 AGENT_RUNTIME_DEP = Depends(get_agent_runtime)
+AGENT_PLANNER_DEP = Depends(get_agent_planner)
+AGENT_EXECUTOR_DEP = Depends(get_agent_executor)
