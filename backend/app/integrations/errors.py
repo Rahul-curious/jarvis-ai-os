@@ -35,3 +35,19 @@ class OAuthStateError(IntegrationValidationError):
 
 class IntegrationProviderUnavailableError(IntegrationError):
     """Raised when a provider cannot accept operations in its current state."""
+
+
+class IntegrationRegistryError(IntegrationError):
+    """Base error for provider registry operations."""
+
+
+class IntegrationProviderRegistrationError(IntegrationRegistryError):
+    """Raised when a provider cannot be registered safely."""
+
+
+class IntegrationProviderNotFoundError(IntegrationRegistryError):
+    """Raised when a provider lookup has no matching registration."""
+
+
+class IntegrationRegistryLimitError(IntegrationRegistryError):
+    """Raised when a registry or discovery limit is exceeded."""

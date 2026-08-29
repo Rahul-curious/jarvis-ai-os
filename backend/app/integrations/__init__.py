@@ -40,9 +40,18 @@ from app.integrations.errors import (
     IntegrationCredentialError,
     IntegrationError,
     IntegrationPermissionError,
+    IntegrationProviderNotFoundError,
+    IntegrationProviderRegistrationError,
     IntegrationProviderUnavailableError,
+    IntegrationRegistryError,
+    IntegrationRegistryLimitError,
     IntegrationValidationError,
     OAuthStateError,
+)
+from app.integrations.registry import (
+    IntegrationProviderFilter,
+    IntegrationProviderRegistry,
+    IntegrationRegistryLimits,
 )
 
 __all__ = [
@@ -65,11 +74,18 @@ __all__ = [
     "IntegrationErrorInfo",
     "IntegrationMetadata",
     "IntegrationPermissionError",
+    "IntegrationProviderNotFoundError",
     "IntegrationProvider",
+    "IntegrationProviderRegistrationError",
     "IntegrationProviderUnavailableError",
+    "IntegrationProviderFilter",
+    "IntegrationProviderRegistry",
+    "IntegrationRegistryLimits",
     "IntegrationRequest",
     "IntegrationResponse",
     "IntegrationResponseStatus",
+    "IntegrationRegistryError",
+    "IntegrationRegistryLimitError",
     "IntegrationStatus",
     "IntegrationValidationError",
     "OAuthAuthorizationRequest",
