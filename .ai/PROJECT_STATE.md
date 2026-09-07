@@ -36,177 +36,234 @@ Phase 7 establishes the workspace foundation and provider integration architectu
 - 7.1 — Contracts ✅
 - 7.2 — Credential Boundary ✅
 - 7.3 — Provider Registry ✅
-- 7.4 — GitHub Provider 🔵 IN PROGRESS
+- 7.4 — GitHub Provider ✅
 
 ---
 
-# Current Subphase
+# Current Completed Milestone
 
 ## Phase 7.4 — GitHub Provider
 
-Status: IN PROGRESS
+Status: COMPLETED ✅
 
-Antigravity is now the active development agent and is taking over the Phase 7.4 GitHub Provider implementation.
+Issue:
 
-The previous Codex session ended because its usage limit was reached.
+#13
 
-The repository was verified clean before the handoff.
+The read-only GitHub provider has been implemented and validated.
+
+### Implemented
+
+- Read-only `GitHubProvider`
+- GitHub REST API client
+- GitHub-specific request/response schemas
+- GitHub error translation
+- Provider registry integration
+- Credential boundary integration
+- Secret isolation
+- Read-only capability enforcement
+
+### GitHub Capabilities
+
+- `repos.list`
+- `repos.get`
+- `issues.list`
+- `issues.get`
+- `pulls.list`
+- `pulls.get`
+- `user.get`
+
+No write or destructive GitHub operations are implemented or advertised.
 
 ---
 
-# Current Architecture Direction
+# Phase 7.4 Architecture
 
-The implementation must preserve the provider-neutral architecture established in Phase 7.1–7.3.
-
-### GitHub Integration Boundary
-
-GitHub-specific implementation details should remain isolated under:
+GitHub-specific implementation is isolated under:
 
 `backend/app/integrations/github/`
 
 This includes:
 
-- GitHub-specific HTTP communication
-- GitHub request and response schemas
-- GitHub-specific error translation
-- GitHub provider implementation details
+- GitHub HTTP communication
+- GitHub request/response models
+- GitHub error translation
+- GitHub provider implementation
 
-### Provider-Neutral Contracts
+The existing provider-neutral contracts remain unchanged.
 
-The existing provider-neutral contracts must remain stable and provider-neutral.
+The existing credential boundary remains unchanged.
 
-Do not introduce unnecessary GitHub-specific behavior into provider-neutral abstractions.
+The existing provider registry remains unchanged.
 
-### Provider Registry
-
-The existing provider registry should be reused.
-
-Do not redesign or replace the provider registry unless a concrete compatibility or architectural requirement requires it.
-
-### Credential Boundary
-
-Preserve the credential boundary established in Phase 7.2.
-
-Provider credentials and authentication details must remain isolated from provider-neutral contracts.
+The GitHub provider is registered through the existing provider registry.
 
 ---
 
-# Current Task
+# Security Validation
 
-## Phase 7.4 — GitHub Provider / Issue #13
+The Phase 7.2 credential boundary remains intact.
 
-Continue the existing Phase 7.4 implementation from the current repository state.
+Credential references remain opaque.
 
-The receiving agent must first inspect:
+Plaintext credentials and tokens are not exposed through:
+
+- provider metadata
+- integration requests
+- integration responses
+- registry state
+- errors
+- logs
+
+The GitHub access token is resolved only through the credential boundary and used for the in-flight HTTP request.
+
+---
+
+# Phase 7.4 Validation
+
+## GitHub Provider Tests
+
+16 passed.
+
+## Phase 7 Integration Tests
+
+38 passed.
+
+## Full Backend Test Suite
+
+145 passed.
+
+## Ruff
+
+`ruff check .`
+
+All checks passed.
+
+## Git Diff Check
+
+`git diff --check`
+
+Passed with no whitespace errors.
+
+## Result
+
+Phase 7.4 implementation is validated with zero test failures and no detected regressions.
+
+---
+
+# Current Git State
+
+Latest known committed checkpoint before the Phase 7.4 implementation:
+
+`ee90655`
+
+Commit:
+
+`chore: handoff phase 7.4 to antigravity`
+
+The Phase 7.4 implementation is currently present in the working tree and must be committed as the next project checkpoint.
+
+---
+
+# Current Agent State
+
+## ANTIGRAVITY
+
+Status: ACTIVE
+
+Antigravity completed the Phase 7.4 implementation and validation.
+
+## CODEX
+
+Status: STANDBY
+
+Codex remains available as the backup development agent.
+
+---
+
+# Architecture Preservation Rules
+
+Do not restart completed phases.
+
+Do not replace existing architecture without a concrete technical reason.
+
+Do not perform unrelated refactoring.
+
+Do not delete functioning systems without explicit approval.
+
+Prefer small, incremental, production-ready changes.
+
+Preserve:
+
+- provider-neutral contracts
+- credential boundaries
+- provider registry
+- clean architecture
+- existing project conventions
+
+---
+
+# Phase Completion Gate
+
+Before moving to the next Phase 7 milestone:
+
+1. Verify Issue #13 requirements.
+2. Verify implementation.
+3. Verify tests.
+4. Verify security boundaries.
+5. Verify architecture.
+6. Update documentation.
+7. Create Git checkpoint.
+8. Push to GitHub.
+9. Confirm clean working tree.
+10. Inspect the actual Phase 7 roadmap.
+11. Identify the exact next milestone.
+
+Do not assume the next phase or subphase.
+
+---
+
+# Agent Handoff
+
+Current ownership:
+
+ANTIGRAVITY = ACTIVE
+
+CODEX = STANDBY
+
+Do not switch agents until the Phase 7.4 implementation has been committed and pushed.
+
+When a future handoff occurs:
+
+1. Finish or checkpoint current work.
+2. Run relevant tests.
+3. Review `git status`.
+4. Review `git diff`.
+5. Commit the implementation.
+6. Push to GitHub.
+7. Update this file.
+8. Update `HANDOFF.md`.
+9. Change `ACTIVE_AGENT.md`.
+10. Commit the handoff state.
+11. Push the handoff state.
+12. Verify clean working tree.
+
+---
+
+# Receiving Agent Requirements
+
+When another agent becomes ACTIVE, it must read:
 
 - `AGENTS.md`
-- relevant Phase 7 documentation
-- existing provider contracts
-- credential boundary implementation
-- provider registry
-- existing GitHub integration files
-- relevant tests
-- latest Git history
+- `.ai/ACTIVE_AGENT.md`
+- `.ai/PROJECT_STATE.md`
+- `.ai/HANDOFF.md`
+- `.ai/RULES.md`
+- `.agents/rules/jarvis-agent-lock.md`
 
-Do not assume Issue #13 is complete.
-
-The goal is to complete the GitHub provider integration while preserving the architecture already established in Phase 7.1–7.3.
-
-### Implementation Requirements
-
-1. Follow the existing project architecture.
-2. Keep GitHub-specific HTTP behavior under `backend/app/integrations/github/`.
-3. Keep GitHub-specific request and response schemas inside the integration boundary where appropriate.
-4. Translate GitHub-specific errors at the integration boundary.
-5. Register the GitHub provider through the existing provider registry.
-6. Preserve provider-neutral contracts.
-7. Preserve the Phase 7.2 credential boundary.
-8. Avoid unnecessary changes to the provider registry.
-9. Add or update tests for critical functionality.
-10. Verify existing functionality has not regressed.
-
----
-
-# Previous Agent Context
-
-## Previous Agent
-
-CODEX
-
-## Previous Agent Status
-
-Session unavailable because the Codex usage limit was reached.
-
-## Codex Architecture Direction
-
-The previous Codex session established the following implementation direction:
-
-> Keep GitHub-specific HTTP, request/response schemas, and error translation isolated under `backend/app/integrations/github/`, then register it through the existing provider registry without changing the registry itself unless required.
-
-This decision should be preserved unless repository inspection reveals a concrete incompatibility.
-
----
-
-# Project History
-
-## Completed Major Phases
-
-- Phase 0 — Architecture ✅
-- Phase 1 — Foundation ✅
-- Phase 2 — Security / REST / Migration ✅
-- Phase 3 — Authentication ✅
-- Phase 4 — Memory Engine ✅
-- Phase 5 — RAG Knowledge Engine ✅
-
-## Current Major Phase
-
-- Phase 7 — Workspace Foundation 🔵 IN PROGRESS
-
-## Completed Phase 7 Work
-
-- 7.1 — Contracts ✅
-- 7.2 — Credential Boundary ✅
-- 7.3 — Provider Registry ✅
-
-## Current Phase 7 Work
-
-- 7.4 — GitHub Provider 🔵 IN PROGRESS
-
-## Future
-
-Continue the remaining JARVIS roadmap after Phase 7 according to the existing project documentation and roadmap.
-
-Do not assume future phases are complete.
-
----
-
-# Current Git Checkpoint
-
-## Repository State
-
-Branch:
-
-`main`
-
-## Latest Verified Commit
-
-`012da31`
-
-## Commit Message
-
-`chore: add antigravity workspace lock rule`
-
-## Remote
-
-`origin/main`
-
-## Working Tree At Last Verified Checkpoint
-
-Clean.
-
-The repository was verified with:
+Then verify:
 
 ```bash
 git status
-git status --short
-git log -3 --oneline
+git branch --show-current
+git log -1 --oneline

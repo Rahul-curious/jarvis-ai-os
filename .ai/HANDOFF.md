@@ -1,16 +1,18 @@
+
+
 # JARVIS AI OS — AGENT HANDOFF
 
 ## Handoff Status
 
-READY
+NOT READY
 
 ## Current Owner
 
-CODEX
-
-## Receiving Agent
-
 ANTIGRAVITY
+
+## Standby Agent
+
+CODEX
 
 ## Previous Agent
 
@@ -18,7 +20,7 @@ CODEX
 
 ## Next Agent
 
-ANTIGRAVITY
+NONE
 
 ---
 
@@ -33,193 +35,176 @@ Status: IN PROGRESS
 - 7.1 — Contracts ✅
 - 7.2 — Credential Boundary ✅
 - 7.3 — Provider Registry ✅
-- 7.4 — GitHub Provider 🔵 IN PROGRESS
+- 7.4 — GitHub Provider ✅
 
 ---
 
-# Current Subphase
+# Current Milestone
 
 ## Phase 7.4 — GitHub Provider
 
-Status: IN PROGRESS
+Status: COMPLETED ✅
 
-Current implementation target:
+Issue:
 
-GitHub Provider — Issue #13
+#13
 
----
-
-# Last Active Agent
-
-CODEX
-
-Codex's previous session is no longer available because its usage limit was reached.
-
-The repository is currently clean and contains no uncommitted Codex implementation changes.
+The GitHub Provider implementation has been completed and validated.
 
 ---
 
-# Current Work To Continue
+# Implementation Summary
 
-Continue Phase 7.4 — GitHub Provider / Issue #13 from the current repository state.
+Implemented:
 
-The implementation direction established during the previous Codex session was:
+- `GitHubProvider`
+- `GitHubClient`
+- GitHub-specific schemas
+- GitHub error translation
+- GitHub package exports
+- Phase 7.4 test suite
 
-- Keep GitHub-specific HTTP behavior isolated under `backend/app/integrations/github/`.
-- Keep GitHub-specific request and response schemas isolated to the GitHub integration boundary where appropriate.
-- Translate GitHub-specific errors at the integration boundary.
-- Register the GitHub provider through the existing provider registry.
-- Preserve the existing provider-neutral contracts.
-- Do not redesign the provider registry unnecessarily.
-
-The existing provider-neutral contracts, credential boundary, and provider registry are established architecture and should be preserved.
-
----
-
-# Last Verified Git Checkpoint
-
-## Branch
-
-`main`
-
-## Latest Commit
-
-`012da31`
-
-## Commit Message
-
-`chore: add antigravity workspace lock rule`
-
-## Remote
-
-`origin/main`
-
-## Working Tree
-
-Clean.
-
-There are currently no uncommitted implementation changes.
-
----
-
-# Important Previous Checkpoint
-
-Before the Antigravity workspace rule was added:
-
-`5087995`
-
-Commit:
-
-`docs: update agent state for phase 7.4`
-
-This checkpoint established the Phase 7.4 project state and Codex ownership information.
-
----
-
-# Files Changed By Previous Agent
-
-No Phase 7.4 implementation files are currently uncommitted.
-
-The most recent commits before handoff were project-control commits:
-
-- `5087995` — phase 7.4 agent state
-- `012da31` — Antigravity workspace lock rule
-
----
-
-# Tests
-
-No new Phase 7.4 test results were recorded in this handoff.
-
-The receiving agent must inspect the existing tests and run the relevant test suite before considering the current Issue #13 work complete.
-
----
-
-# Known Issues
-
-The GitHub Provider implementation for Issue #13 is not confirmed complete.
-
-The receiving agent must inspect the repository and existing implementation before making assumptions about completion.
-
-Do not mark Phase 7.4 complete without verifying the implementation and tests.
-
----
-
-# Architecture Decisions To Preserve
-
-## Provider-Neutral Contracts
-
-Provider-neutral contracts must remain independent of GitHub-specific implementation details.
-
-## GitHub Isolation
-
-GitHub-specific behavior should remain isolated under:
+All GitHub implementation details remain isolated under:
 
 `backend/app/integrations/github/`
 
-## Provider Registry
+---
 
-Reuse the existing provider registry.
+# Capabilities
 
-Do not redesign the registry without a concrete compatibility reason.
+The provider exposes only read-only operations:
 
-## Credential Boundary
+- `repos.list`
+- `repos.get`
+- `issues.list`
+- `issues.get`
+- `pulls.list`
+- `pulls.get`
+- `user.get`
 
-Preserve the Phase 7.2 credential boundary.
-
-Provider credentials and authentication details must not leak into provider-neutral contracts.
+No write or destructive operations are implemented.
 
 ---
 
-# Instructions For Receiving Agent
+# Security
 
-Before modifying anything:
+The Phase 7.2 credential boundary is preserved.
 
-1. Read `AGENTS.md`.
-2. Read `.ai/ACTIVE_AGENT.md`.
-3. Read `.ai/PROJECT_STATE.md`.
-4. Read `.ai/HANDOFF.md`.
-5. Read `.ai/RULES.md`.
-6. Read `.agents/rules/jarvis-agent-lock.md`.
-7. Check `git status`.
-8. Check the current branch.
-9. Check the latest Git commit.
-10. Inspect the Phase 7.4 documentation.
-11. Inspect the existing GitHub integration implementation.
-12. Inspect the relevant tests.
-13. Continue from the current repository state.
+Credential references remain opaque.
 
-Do not restart completed work.
-
-Do not assume Issue #13 is complete until the repository confirms it.
+Plaintext credentials and access tokens are not exposed through integration contracts, metadata, registry state, responses, errors, or logs.
 
 ---
 
-# Handoff Procedure
+# Validation Results
 
-The previous agent has completed the current checkpoint.
+GitHub Provider tests:
 
-The receiving agent may take ownership only after:
+16 passed
 
-1. This file says `READY`.
-2. `.ai/ACTIVE_AGENT.md` identifies `ANTIGRAVITY`.
-3. The ownership change is committed.
-4. The ownership change is pushed to GitHub.
+Phase 7 integration tests:
+
+38 passed
+
+Full backend test suite:
+
+145 passed
+
+Ruff:
+
+All checks passed
+
+Git diff check:
+
+Passed
+
+Result:
+
+Zero test failures and no detected regressions.
 
 ---
 
-# Receiving Agent Starting Procedure
+# Files Added
 
-When Antigravity becomes ACTIVE:
+- `backend/app/integrations/github/__init__.py`
+- `backend/app/integrations/github/client.py`
+- `backend/app/integrations/github/errors.py`
+- `backend/app/integrations/github/provider.py`
+- `backend/app/integrations/github/schemas.py`
+- `backend/tests/test_integrations_github.py`
 
-```text
-1. Verify GitHub/local synchronization.
-2. Verify clean working tree.
-3. Read AGENTS.md.
-4. Read all .ai control files.
-5. Read the Antigravity workspace rule.
-6. Inspect the latest commit.
-7. Inspect Phase 7.4 implementation.
-8. Inspect Issue #13 requirements.
-9. Create an implementation plan.
-10. Only then begin implementation.
+No existing provider-neutral contract files were modified.
+
+---
+
+# Current Git State
+
+Latest committed checkpoint before Phase 7.4 implementation:
+
+`ee90655`
+
+The Phase 7.4 implementation is currently uncommitted in the working tree.
+
+The implementation must be committed and pushed before moving to another milestone or handing control to another agent.
+
+---
+
+# Current Agent
+
+ANTIGRAVITY
+
+Status:
+
+ACTIVE
+
+---
+
+# Standby Agent
+
+CODEX
+
+Status:
+
+STANDBY
+
+---
+
+# Next Action
+
+1. Commit the validated Phase 7.4 implementation.
+2. Push the commit to GitHub.
+3. Verify the working tree is clean.
+4. Inspect the actual Phase 7 roadmap.
+5. Determine the exact next milestone.
+6. Do not assume the next subphase.
+
+---
+
+# Future Handoff
+
+When handing control to another agent:
+
+1. Finish or checkpoint the current task.
+2. Run relevant tests.
+3. Review `git status`.
+4. Review `git diff`.
+5. Commit changes.
+6. Push to GitHub.
+7. Update `.ai/PROJECT_STATE.md`.
+8. Update this file.
+9. Change `.ai/ACTIVE_AGENT.md`.
+10. Commit the handoff state.
+11. Push the handoff state.
+12. Verify the working tree is clean.
+
+---
+
+# Critical Rule
+
+Never let Codex and Antigravity actively modify the same working tree at the same time.
+
+Never discard or overwrite another agent's work.
+
+GitHub is the source of truth for committed project state.
+
+The current Phase 7.4 implementation must be preserved.
