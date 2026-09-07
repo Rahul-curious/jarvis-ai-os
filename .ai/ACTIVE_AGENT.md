@@ -22,13 +22,24 @@ Only the agent listed as ACTIVE may modify the repository.
 
 ANTIGRAVITY must remain in STANDBY while CODEX is ACTIVE.
 
+
 ## Current Phase
 
-Phase 6 — AI Agent Framework
+Phase 7 — Workspace Foundation
 
 ## Current Subphase
 
-6.8 — RAG / Knowledge Integration
+7.4 — GitHub Provider
+
+## Current Work
+
+Codex is actively implementing the GitHub provider integration.
+
+The implementation keeps GitHub-specific HTTP, request/response schemas, and error translation isolated under:
+
+backend/app/integrations/github/
+
+The existing provider-neutral registry and contracts must remain unchanged unless a concrete compatibility issue requires modification.
 
 ## Handoff Rule
 

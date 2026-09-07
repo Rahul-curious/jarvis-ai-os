@@ -25,88 +25,146 @@ ANTIGRAVITY
 
 # Current Development Phase
 
-## Phase 6 — AI Agent Framework
+## Phase 7 — Workspace Foundation
 
 Status: IN PROGRESS
 
-The project is currently in the Phase 6 Agent Framework implementation.
+Phase 7 establishes the workspace foundation and provider integration architecture for JARVIS.
 
-Current documented Phase 6 focus:
+### Phase 7 Progress
 
-- Agent domain
-- Agent runs and lifecycle
-- Agent context assembly
-- Runtime abstraction
-- Tool registry
-- Planner
-- Executor
-- Memory integration
-- Knowledge / RAG integration
-- Agent APIs
-- End-to-end execution
+- 7.1 — Contracts ✅
+- 7.2 — Credential Boundary ✅
+- 7.3 — Provider Registry ✅
+- 7.4 — GitHub Provider 🔵 IN PROGRESS
+
+---
+
+# Current Subphase
+
+## Phase 7.4 — GitHub Provider
+
+Status: IN PROGRESS
+
+Codex is currently implementing the GitHub provider integration.
+
+The implementation must preserve the provider-neutral architecture already established in Phase 7.1–7.3.
+
+### Current Architecture Direction
+
+GitHub-specific implementation details should remain isolated under:
+
+`backend/app/integrations/github/`
+
+This includes:
+
+- GitHub-specific HTTP communication
+- GitHub request and response schemas
+- GitHub-specific error translation
+- GitHub provider implementation details
+
+The existing provider-neutral contracts must remain stable.
+
+The existing provider registry should be reused rather than redesigned unnecessarily.
+
+The GitHub provider should be registered through the existing provider registry.
+
+Do not introduce GitHub-specific behavior into provider-neutral contracts unless a concrete compatibility requirement makes it necessary.
 
 ---
 
 # Current Task
 
-Continue the existing Phase 6 implementation from the repository's current code, documentation, tests, and Git history.
+Continue Phase 7.4 — GitHub Provider from the current repository state.
 
-Do not assume a Phase 6 subphase is complete unless the repository or handoff documentation confirms it.
+Codex is the active development agent.
+
+The current objective is to complete the GitHub provider integration while preserving the existing provider-neutral contracts, credential boundary, and provider registry.
+
+The implementation should:
+
+1. Follow the existing project architecture.
+2. Keep GitHub-specific HTTP behavior isolated under `backend/app/integrations/github/`.
+3. Keep request/response schemas isolated to the GitHub integration where appropriate.
+4. Translate GitHub-specific errors at the integration boundary.
+5. Register the GitHub provider through the existing provider registry.
+6. Avoid unnecessary changes to the provider-neutral registry.
+7. Add or update tests for critical functionality.
+8. Preserve existing completed Phase 7 work.
 
 ---
 
 # Project History
 
-Completed major phases:
+## Completed Major Phases
 
-- Phase 0 — Architecture
-- Phase 1 — Foundation
-- Phase 2 — Security / REST / Migration
-- Phase 3 — Authentication
-- Phase 4 — Memory Engine
-- Phase 5 — RAG Knowledge Engine
+- Phase 0 — Architecture ✅
+- Phase 1 — Foundation ✅
+- Phase 2 — Security / REST / Migration ✅
+- Phase 3 — Authentication ✅
+- Phase 4 — Memory Engine ✅
+- Phase 5 — RAG Knowledge Engine ✅
 
-Current:
+## Current Major Phase
 
-- Phase 6 — AI Agent Framework
+- Phase 7 — Workspace Foundation 🔵 IN PROGRESS
 
-Future:
+## Completed Phase 7 Work
 
-- Phase 7+
-- Continue according to the existing JARVIS roadmap in `docs/roadmap.md`
+- 7.1 — Contracts ✅
+- 7.2 — Credential Boundary ✅
+- 7.3 — Provider Registry ✅
+
+## Current Phase 7 Work
+
+- 7.4 — GitHub Provider 🔵 IN PROGRESS
+
+## Future
+
+Continue the remaining JARVIS roadmap after Phase 7 according to the project's existing documentation and roadmap.
+
+Do not assume future phases are complete.
 
 ---
 
 # Current Git Checkpoint
 
+## Repository State
+
 Branch:
 
-main
+`main`
 
-Latest verified commit:
+Latest verified committed checkpoint:
 
-3c72668
+`ba8dab2`
 
 Commit:
 
-feat(integrations): add provider registry
+`chore: add AI agent handoff and locking system`
 
-Working tree at checkpoint:
+Remote:
 
-clean
+`origin/main`
+
+Working tree:
+
+The AI handoff system was committed and pushed before the current Phase 7.4 implementation work.
+
+Any newer uncommitted changes belong to the active Codex session and must not be overwritten during an agent handoff.
 
 ---
 
 # Important Existing Project Instructions
 
-Before modifying code, agents must read:
+Before modifying code, the active agent must read:
 
 - `AGENTS.md`
 - relevant documentation under `docs/`
 - relevant source files
 - relevant tests
 
-The repository's existing architecture and conventions take priority.
+The repository's existing architecture, conventions, and contracts take priority.
 
 ---
 
@@ -120,48 +178,90 @@ Do not perform unrelated refactoring.
 
 Do not delete functioning systems simply to introduce a new implementation.
 
-Prefer incremental changes that preserve existing contracts.
+Prefer small, incremental, production-ready changes.
+
+Preserve existing provider-neutral abstractions.
+
+Preserve existing credential boundaries.
+
+Preserve existing provider registry behavior unless a concrete requirement requires modification.
+
+---
+
+# Phase 7.4 Architecture Constraint
+
+The GitHub provider must remain isolated from provider-neutral abstractions as much as practical.
+
+GitHub-specific details should stay inside:
+
+`backend/app/integrations/github/`
+
+Provider-neutral contracts should remain provider-neutral.
+
+The provider registry should continue to act as the registration/discovery mechanism.
+
+Do not redesign the provider registry merely to accommodate GitHub.
+
+---
+
+# Testing Expectations
+
+Critical functionality must have appropriate tests.
+
+Before a task is considered complete:
+
+1. Run relevant tests.
+2. Verify the GitHub provider behavior.
+3. Verify provider registration.
+4. Verify error translation where applicable.
+5. Verify existing functionality has not regressed.
+
+Record important test results during handoff.
 
 ---
 
 # Agent Handoff
 
-The active agent owns the repository.
+The active agent owns repository write access.
 
 The standby agent must not modify the repository.
+
+Current ownership:
+
+CODEX = ACTIVE
+
+ANTIGRAVITY = STANDBY
 
 Before changing the active agent:
 
 1. Finish or checkpoint the current task.
 2. Run relevant tests.
-3. Review changes.
-4. Commit changes.
-5. Push to GitHub.
-6. Update this file.
-7. Update `HANDOFF.md`.
-8. Update `ACTIVE_AGENT.md`.
+3. Review `git status`.
+4. Review `git diff`.
+5. Commit the current work.
+6. Push the checkpoint to GitHub.
+7. Update this file.
+8. Update `HANDOFF.md`.
+9. Update `ACTIVE_AGENT.md`.
+10. Commit and push the handoff state.
+
+Never hand off meaningful uncommitted work.
 
 ---
 
-# Current Status
+# Receiving Agent Requirements
 
-CODEX is currently the active development agent.
+When another agent becomes ACTIVE, it must first read:
 
-ANTIGRAVITY is configured as the standby / backup development agent.
+- `AGENTS.md`
+- `.ai/ACTIVE_AGENT.md`
+- `.ai/PROJECT_STATE.md`
+- `.ai/HANDOFF.md`
+- `.ai/RULES.md`
 
-No agent switch has occurred yet.
+Then verify:
 
----
-
-# Source of Truth
-
-The following are the sources of truth, in priority order:
-
-1. Actual repository code
-2. Git history
-3. Tests
-4. `AGENTS.md`
-5. Phase documentation in `docs/`
-6. `.ai/` project-control files
-
-When information conflicts, inspect the repository and Git history before making assumptions.
+```bash
+git status
+git branch --show-current
+git log -1 --oneline
