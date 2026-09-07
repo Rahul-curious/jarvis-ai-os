@@ -2,23 +2,23 @@
 
 ## Handoff Status
 
-NOT READY
+READY
 
 ## Current Owner
 
 CODEX
 
-## Current Standby Agent
+## Receiving Agent
 
 ANTIGRAVITY
 
 ## Previous Agent
 
-NONE
+CODEX
 
 ## Next Agent
 
-NONE
+ANTIGRAVITY
 
 ---
 
@@ -43,26 +43,36 @@ Status: IN PROGRESS
 
 Status: IN PROGRESS
 
-Codex is currently implementing the GitHub provider integration.
+Current implementation target:
 
-The implementation must preserve the provider-neutral architecture established in Phase 7.1–7.3.
+GitHub Provider — Issue #13
 
 ---
 
-# Current Work
+# Last Active Agent
 
-Codex is actively working on the Phase 7.4 GitHub Provider implementation.
+CODEX
 
-The current architecture direction is:
+Codex's previous session is no longer available because its usage limit was reached.
+
+The repository is currently clean and contains no uncommitted Codex implementation changes.
+
+---
+
+# Current Work To Continue
+
+Continue Phase 7.4 — GitHub Provider / Issue #13 from the current repository state.
+
+The implementation direction established during the previous Codex session was:
 
 - Keep GitHub-specific HTTP behavior isolated under `backend/app/integrations/github/`.
-- Keep GitHub-specific request and response schemas within the GitHub integration boundary where appropriate.
+- Keep GitHub-specific request and response schemas isolated to the GitHub integration boundary where appropriate.
 - Translate GitHub-specific errors at the integration boundary.
 - Register the GitHub provider through the existing provider registry.
 - Preserve the existing provider-neutral contracts.
 - Do not redesign the provider registry unnecessarily.
 
-The existing provider-neutral contracts, credential boundary, and provider registry are considered established project architecture and should be preserved unless a concrete compatibility problem requires a change.
+The existing provider-neutral contracts, credential boundary, and provider registry are established architecture and should be preserved.
 
 ---
 
@@ -72,64 +82,72 @@ The existing provider-neutral contracts, credential boundary, and provider regis
 
 `main`
 
-## Last Verified Commit
+## Latest Commit
 
-`ba8dab2`
+`012da31`
 
 ## Commit Message
 
-`chore: add AI agent handoff and locking system`
+`chore: add antigravity workspace lock rule`
 
 ## Remote
 
 `origin/main`
 
-## Checkpoint Meaning
+## Working Tree
 
-This commit represents the last known clean checkpoint before the current active development work.
+Clean.
 
-Any newer uncommitted changes belong to the active Codex session.
-
-The receiving agent must never discard or overwrite those changes.
+There are currently no uncommitted implementation changes.
 
 ---
 
-# Files Changed During Current Work
+# Important Previous Checkpoint
 
-This section will be updated by Codex when a meaningful checkpoint or handoff is created.
+Before the Antigravity workspace rule was added:
 
-Current status:
+`5087995`
 
-Not yet recorded.
+Commit:
 
-Before handoff, list the important implementation files changed during the current Phase 7.4 work.
+`docs: update agent state for phase 7.4`
+
+This checkpoint established the Phase 7.4 project state and Codex ownership information.
+
+---
+
+# Files Changed By Previous Agent
+
+No Phase 7.4 implementation files are currently uncommitted.
+
+The most recent commits before handoff were project-control commits:
+
+- `5087995` — phase 7.4 agent state
+- `012da31` — Antigravity workspace lock rule
 
 ---
 
 # Tests
 
-No handoff test results have been recorded yet.
+No new Phase 7.4 test results were recorded in this handoff.
 
-Before a handoff occurs, Codex must record:
-
-- Relevant tests executed.
-- Test results.
-- Any failing or skipped tests.
-- Any known regression risks.
+The receiving agent must inspect the existing tests and run the relevant test suite before considering the current Issue #13 work complete.
 
 ---
 
 # Known Issues
 
-No handoff-specific issues have been recorded yet.
+The GitHub Provider implementation for Issue #13 is not confirmed complete.
 
-Any incomplete implementation, failing test, architectural concern, or known limitation must be documented here before handing the project to another agent.
+The receiving agent must inspect the repository and existing implementation before making assumptions about completion.
+
+Do not mark Phase 7.4 complete without verifying the implementation and tests.
 
 ---
 
 # Architecture Decisions To Preserve
 
-## Provider-Neutral Architecture
+## Provider-Neutral Contracts
 
 Provider-neutral contracts must remain independent of GitHub-specific implementation details.
 
@@ -141,105 +159,67 @@ GitHub-specific behavior should remain isolated under:
 
 ## Provider Registry
 
-The existing provider registry should be reused.
+Reuse the existing provider registry.
 
-Do not redesign or modify the registry unnecessarily.
+Do not redesign the registry without a concrete compatibility reason.
 
 ## Credential Boundary
 
-The credential boundary established in Phase 7.2 must remain intact.
+Preserve the Phase 7.2 credential boundary.
 
-Credentials and provider-specific authentication details must not leak into provider-neutral contracts.
+Provider credentials and authentication details must not leak into provider-neutral contracts.
 
 ---
 
 # Instructions For Receiving Agent
 
-Before modifying anything, the receiving agent must:
+Before modifying anything:
 
 1. Read `AGENTS.md`.
 2. Read `.ai/ACTIVE_AGENT.md`.
 3. Read `.ai/PROJECT_STATE.md`.
-4. Read this file.
+4. Read `.ai/HANDOFF.md`.
 5. Read `.ai/RULES.md`.
-6. Check `git status`.
-7. Check the current branch.
-8. Check the latest Git commit.
-9. Inspect the relevant Phase 7.4 implementation.
-10. Understand what the previous agent completed before continuing.
+6. Read `.agents/rules/jarvis-agent-lock.md`.
+7. Check `git status`.
+8. Check the current branch.
+9. Check the latest Git commit.
+10. Inspect the Phase 7.4 documentation.
+11. Inspect the existing GitHub integration implementation.
+12. Inspect the relevant tests.
+13. Continue from the current repository state.
 
-The receiving agent must continue from the latest committed checkpoint.
+Do not restart completed work.
 
-The receiving agent must not restart completed work.
+Do not assume Issue #13 is complete until the repository confirms it.
 
 ---
 
 # Handoff Procedure
 
-A valid handoff from one agent to another requires:
+The previous agent has completed the current checkpoint.
 
-1. Current agent finishes or checkpoints the current task.
-2. Relevant tests are executed.
-3. `git status` is reviewed.
-4. `git diff` is reviewed.
-5. Changes are committed.
-6. Changes are pushed to GitHub.
-7. `.ai/PROJECT_STATE.md` is updated.
-8. This `HANDOFF.md` is updated.
-9. `.ai/ACTIVE_AGENT.md` is changed to the receiving agent.
-10. The handoff state is committed.
-11. The handoff state is pushed to GitHub.
+The receiving agent may take ownership only after:
 
-Only after these steps is the receiving agent allowed to begin modifying the repository.
+1. This file says `READY`.
+2. `.ai/ACTIVE_AGENT.md` identifies `ANTIGRAVITY`.
+3. The ownership change is committed.
+4. The ownership change is pushed to GitHub.
 
 ---
 
-# Current Ownership Lock
-
-## CODEX
-
-Status: ACTIVE
-
-CODEX currently owns repository write access.
-
-## ANTIGRAVITY
-
-Status: STANDBY
-
-Antigravity must not modify the repository while CODEX is ACTIVE.
-
-Antigravity may inspect and report repository state when explicitly asked, but must not implement, refactor, delete, create, or modify project files.
-
----
-
-# Handoff Status Definitions
-
-## NOT READY
-
-The current agent is still actively developing.
-
-The receiving agent must remain in STANDBY.
-
-## READY
-
-The current agent has created a complete Git checkpoint and documented the work.
-
-The receiving agent may take ownership after `.ai/ACTIVE_AGENT.md` is changed.
-
----
-
-# Receiving Agent Starting Checklist
+# Receiving Agent Starting Procedure
 
 When Antigravity becomes ACTIVE:
 
 ```text
-1. Pull latest GitHub state.
+1. Verify GitHub/local synchronization.
 2. Verify clean working tree.
 3. Read AGENTS.md.
-4. Read .ai/ACTIVE_AGENT.md.
-5. Read .ai/PROJECT_STATE.md.
-6. Read .ai/HANDOFF.md.
-7. Read .ai/RULES.md.
-8. Inspect the latest commit.
-9. Inspect the current Phase 7.4 implementation.
-10. Continue from the documented next step.
+4. Read all .ai control files.
+5. Read the Antigravity workspace rule.
+6. Inspect the latest commit.
+7. Inspect Phase 7.4 implementation.
+8. Inspect Issue #13 requirements.
+9. Create an implementation plan.
+10. Only then begin implementation.
